@@ -1,1 +1,9 @@
+<%args>
+  $form
+</%args>
+
 Blast Index
+
+<&| /page/info_section.mas, title => 'BLAST' &>
+  <% $form->render %>
+</&>
