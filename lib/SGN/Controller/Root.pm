@@ -2,6 +2,7 @@ package SGN::Controller::Root;
 use Moose;
 use namespace::autoclean;
 
+use Scalar::Util 'weaken';
 use CatalystX::GlobalContext ();
 
 use CXGN::Login;
@@ -77,7 +78,6 @@ sub bare_mason :Path('bare_mason') {
     $c->forward('View::BareMason');
 }
 
-
 =head2 copyright
 
 Public Path: /copyright
@@ -103,7 +103,6 @@ sub legal :Path('legal') {
     shift;  shift->stash->{template} = '/homepage/legal.mas';
 }
 
-
 =head1 PRIVATE ACTIONS
 
 =head2 end
@@ -118,42 +117,21 @@ sub end : Private {
 
     return if @{$c->error};
 
-    $c->forward('render');
+    # don't try to render a default view if this was handled by a CGI
+    $c->forward('render') unless $c->req->path =~ /\.pl$/;
+
+    # enforce a default text/html content type regardless of whether
+    # we tried to render a default view
+    $c->res->content_type('text/html') unless $c->res->content_type;
 
     # insert our javascript packages into the rendered view
     if( $c->res->content_type eq 'text/html' ) {
         $c->forward('/js/insert_js_pack_html')
+    } else {
+        $c->log->debug("skipping JS pack insertion for page with content type ".$c->res->content_type)
+            if $c->debug;
     }
 
-}
-
-=head2 download
-
-Sets the Content-disposition response headers appropriate to trigger a
-file-download behavior in the client browser.  Does NOT set the
-content-type, you should do that before forwarding to this
-(e.g. C<$c->res->content_type('text/plain')>).
-
-=cut
-
-sub download :Private {
-    my ( $self, $c, @path ) = @_;
-
-    $c->res->headers->push_header( 'Content-Disposition' => 'attachment' );
-
-    if( defined $c->stash->{download_filename} ) {
-        $c->res->headers->push_header( 'Content-Disposition' => 'filename='.$c->stash->{download_filename} );
-    }
-}
-
-sub download_static :Path('/download') {
-    my ( $self, $c, @path ) = @_;
-
-    my $file = $c->path_to( $c->config->{root},  @path );
-
-    $c->stash->{download_filename} = $file->basename;
-    $c->forward('download');
-    $c->serve_static_file( $file );
 }
 
 =head2 auto
@@ -168,6 +146,19 @@ sub auto : Private {
     # set up the catalystx::globalcontext
     CatalystX::GlobalContext->set_context( $c );
     $c->stash->{c} = $c;
+    weaken $c->stash->{c};
+
+    # gluecode for logins
+    #
+    require CXGN::Login;
+    require CXGN::People::Person;
+    if (my $sp_person_id = CXGN::Login->new($c->dbc->dbh())->has_session()) {
+	my $sp_person = CXGN::People::Person->new($c->dbc->dbh, $sp_person_id);
+	$c->authenticate({
+            username => $sp_person->get_username(),
+            password => $sp_person->get_password(),
+          });
+    }
 
     return 1;
 }
@@ -196,8 +187,9 @@ sub _do_redirects {
     # already been found and does not have an extension
     if( $path !~ m|\.\w{2,4}$| ) {
         if( my $index_action = $self->_find_cgi_action( $c, "$path/index.pl" ) ) {
-            $c->log->debug("dispatching to action $index_action") if $c->debug;
-            $c->go( $index_action );
+            $c->log->debug("redirecting to action $index_action") if $c->debug;
+            $c->res->redirect( $c->uri_for_action($index_action,$c->req->query_parameters), 302 );
+            return 1;
         }
     }
 
@@ -230,7 +222,7 @@ sub _find_cgi_action {
 
 =head1 AUTHOR
 
-Robert Buels,,,
+Robert Buels, Jonathan "Duke" Leto
 
 =head1 LICENSE
 

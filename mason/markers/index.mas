@@ -46,9 +46,10 @@ use SGN::Exception;
 my $e = undef;
 
 if (!$marker_id) { 
-  $e = SGN::Exception->new(title=>'Maker detail page error: marker_id is a required argument');
-  $m->comp('/site/error/exception.mas',  exception=>$e );
-  return;
+  $c->throw(
+     public_message => 'marker_id must be provided as an argument for this page',
+     is_client_error => 1,
+  );
 }
 
 my $marker = CXGN::Marker->new($dbh, $marker_id);
@@ -61,6 +62,8 @@ if (!$marker) {
 }
 
 </%perl>
+
+<& /page/page_title.mas, title=> "SGN Marker ".($marker->get_name)[0] &>
 
 <& /markers/basic_marker_info.mas, marker=>$marker, dbh=>$dbh &>
 
@@ -89,6 +92,8 @@ if (!$marker) {
 <& /markers/cosii_files.mas, marker=>$marker &>
 
 <& /markers/attributions.mas, marker=>$marker &>
+
+<& /markers/genome.mas, marker => $marker &>
 
 <& /markers/comments.mas, marker=>$marker &>
 

@@ -9,10 +9,10 @@
 % for my $e (@$exception) {
 
 <h1 style="text-align: center">
-   <% $e->title || ( $e->is_server_error ? 'Server Error' : $e->is_client_error ? 'Error' : '' ) %>
+   <% $e->title || ( $e->is_server_error ? 'Server Error' : $e->is_client_error ? 'Error' : 'Message' ) %>
 </h1>
 
-<div style="margin: auto; width: 80%">
+<div style="margin: auto; width: 60%">
     <p>
 % if( $e->public_message ) {
     <% $e->public_message %>
@@ -28,8 +28,8 @@
 
 % if( $e->is_client_error || $e->is_server_error and $contact_email ) {
 
-    If the problem persists, feel free to contact us at
-    <a href="mailto:<% $contact_email %>"><% $contact_email %></a>, and
+    Feel free to contact us at <a href="mailto:<% $contact_email %>">
+    <% $contact_email %></a>, if the problem persists, and
 %   if( $e->is_server_error ) {
       we will keep you informed of our progress in resolving it.
 %   } else {

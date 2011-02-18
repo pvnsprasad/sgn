@@ -25,6 +25,7 @@ after 'setup_finalize' => sub {
 # SGN::Feature objects
 sub _features {
     my $class = shift;
+    $class = ref $class if ref $class;
     state %feature_objects;
     $feature_objects{$class} ||= do {
         $class->_build__features;
@@ -87,7 +88,15 @@ sub enabled_feature {
 }
 
 sub feature_xrefs {
-    map $_->xrefs( @_ ),  shift->enabled_features
+    my ( $c, $query, $args ) = @_;
+    $args ||= {};
+    my @f = $c->enabled_features;
+    if( my $ex = $args->{exclude} ) {
+        $ex = [ $ex ] unless ref $ex;
+        my %ex = map { $_ => 1 } @$ex;
+        @f = grep !$ex{$_->feature_name}, @f;
+    }
+    return map $_->xrefs( $query, $args ),  @f;
 }
 
 1;

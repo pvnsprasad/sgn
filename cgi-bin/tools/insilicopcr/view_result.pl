@@ -70,7 +70,9 @@ print page_title_html('PCR Results');
 
 print <<EOH;
 <div align="center" style="margin-bottom: 1em">
-  Note: Please <b>do not bookmark</b> this page. BLAST results are automatically deleted after 7 days.
+  Note: Please <b>do not bookmark</b> this page. BLAST results are
+  automatically deleted periodically.  To save these results, use your
+  browser's <b>save</b> feature.
 </div>
 EOH
 
@@ -293,10 +295,7 @@ EOF
     
 
     #saving the gel img in a temp file 
-    my $gel_img_tempdir = File::Spec->catdir($c->config->{'basepath'},
-            		  $c->config->{'tempfiles_subdir'},
-            		  "temp_images",
-            		 );
+    my $gel_img_tempdir = $c->path_to( $c->tempfiles_subdir('temp_images') );
     
     my ($fh ,$temp_file) = tempfile( DIR => $gel_img_tempdir, TEMPLATE=>"gel_XXXXXX", SUFFIX => ".png");
     print $fh $gel_img;

@@ -4,7 +4,7 @@ static/documents/tempfiles
 !exists
 !.exists
 _build
-Build
+/Build
 MYMETA.yml
 *.sw?
 test.sh
@@ -16,3 +16,11 @@ static/static_content
 cover_db
 lib/MyDevLibs.pm
 static/documents/img/secretom/.directory
+programs/*.o
+programs/draw_contigalign
+programs/fast_mapping
+sgn_local.conf
+t/data/data/prod/tmp/
+*.log
+MANIFEST*
+t/data

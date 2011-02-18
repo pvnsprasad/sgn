@@ -1,3 +1,10 @@
+=head1 NAME
+
+SGN::Controller::Clone::Genomic - Catalyst controller for dealing with
+genomic clone data
+
+=cut
+
 package SGN::Controller::Clone::Genomic;
 use namespace::autoclean;
 use Moose;
@@ -5,68 +12,74 @@ use Carp;
 
 use Memoize;
 use File::Basename;
-use File::Slurp qw/slurp/;
 
 use CXGN::DB::DBICFactory;
 use CXGN::Genomic::Clone;
-use CXGN::Page;
+
 use CXGN::PotatoGenome::Config;
 use CXGN::PotatoGenome::FileRepository;
 use CXGN::TomatoGenome::Config;
 
-extends 'SGN::Controller::Clone';
+BEGIN { extends 'SGN::Controller::Clone' }
 
-has 'bcs' => (
-    is => 'ro',
-    isa => 'Bio::Chado::Schema',
-    lazy_build => 1,
-);
-sub _build_bcs {
-    CXGN::DB::DBICFactory->open_schema('Bio::Chado::Schema');
-}
+with 'Catalyst::Component::ApplicationAttribute';
 
-# /maps/physical/clone_annot_download.pl
-sub clone_annot_download {
-    my ( $self, $c ) = @_;
+=head1 ACTIONS
 
-    my $page = CXGN::Page->new('Clone Annotation Download','Robert Buels');
-    my ($id,$set,$format) = $page->get_encoded_arguments('id','annot_set','annot_format');
+=head2 clone_annot_download
 
-    my %content_types = ( gamexml => 'text/xml',
-			  gff3 => 'text/plain',
-			  tar => 'application/octet-stream',
-			);
+Public Path: /genomic/clone/<clone_id>/annotation/download?set=<set_name>&format=<format>
 
-    my $clone = CXGN::Genomic::Clone->retrieve($id);
-    $clone
-	or $page->is_bot_request && exit
-	    or $page->error_page('Clone not found','No clone was found with that id');
+Download an annotation set for a particular clone.
 
-    my %files =  $self->_is_tomato($clone) ? CXGN::TomatoGenome::BACPublish::sequencing_files( $clone, $c->config->{'ftpsite_root'} ) :
-	         $self->_is_potato($clone) ? $self->_potato_seq_files( $c, $clone ) :
-		     $page->error_page("No file", "No files available for that clone");
+=cut
 
-    %files
-	or $page->is_bot_request && exit
-	    or $page->error_page('No Annotations found','No annotation files were found for that clone');
+sub clone_annot_download :Chained('get_clone') :PathPart('annotation/download') :Args(0) {
+    my ( $self, $c, $annot ) = @_;
 
-    if (my $file = $files{$set eq 'all' ? $format : $set.'_'.$format}) {
-        my $type = $content_types{$format} || 'text/plain';
-        my $basename = basename($file);
-        print "Content-Type: $type\n";
-        print "Content-Disposition: attachment; filename=$basename\n";
-        print "\n";
-        print slurp($file);
-    } elsif ( !$page->is_bot_request) {
-        $page->error_page('Not Available',"No annotation set is available in format $format for analysis $set");
+    my ( $set, $format ) = @{ $c->req->query_parameters }{'set','format'};
+    $set =~ s![\\/]!!g;
+    $format =~ s/\W//g;
+
+    my $clone = $c->stash->{clone};
+
+    my %files =
+        $self->_is_tomato($clone) ? CXGN::TomatoGenome::BACPublish::sequencing_files( $clone, $c->config->{'ftpsite_root'} ) :
+        $self->_is_potato($clone) ? $self->_potato_seq_files( $c, $clone )                                                   :
+	                            $c->throw_404('No annotation sets found for that clone.');
+
+    %files or $c->throw_404('No annotation sets found for that clone.');
+
+    if( my $file = $files{$set eq 'all' ? $format : $set.'_'.$format} ) {
+        $c->stash->{download_filename} = $file;
+        $c->forward('Controller::Download','download');
+    } else {
+        $c->throw_404('Annotation set not found.');
     }
 }
 
+=head2 get_clone
+
+Public path: /genomic/clone/<clone_id>
+
+Chaining base for fetching a CXGN::Genomic::Clone, stashes the clone
+object in $c->stash->{clone}
+
+=cut
+
+sub get_clone :Chained('/') PathPart('genomic/clone') :CaptureArgs(1) {
+    my ( $self, $c, $clone_id ) = @_;
+
+    $c->stash->{clone} =
+        CXGN::Genomic::Clone->retrieve( $clone_id )
+              or $c->throw_404('Clone not found.');
+
+}
+
 # find the chado organism for a clone
-memoize('_clone_organism');
 sub _clone_organism {
     my ( $self, $clone ) = @_;
-    $self->bcs->resultset('Organism::Organism')->find( $clone->library_object->organism_id );
+    $self->_app->dbic_schema('Bio::Chado::Schema','sgn_chado')->resultset('Organism::Organism')->find( $clone->library_object->organism_id );
 }
 
 sub _is_tomato {

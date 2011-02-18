@@ -1,6 +1,7 @@
 package SGN::Controller::JavaScript;
 use Moose;
 use namespace::autoclean;
+use Moose::Util::TypeConstraints;
 
 use File::Spec;
 
@@ -15,9 +16,20 @@ BEGIN { extends 'Catalyst::Controller' }
 with 'Catalyst::Component::ApplicationAttribute';
 
 __PACKAGE__->config(
-    namespace => 'js',
+    namespace       => 'js',
+    js_include_path => SGN->path_to('js'),
    );
 
+{
+    my $inc = subtype as 'ArrayRef';
+    coerce $inc, from 'Defined', via { [$_] };
+
+    has 'js_include_path' => (
+        is     => 'ro',
+        isa    => $inc,
+        coerce => 1,
+       );
+}
 
 has '_package_defs' => (
     is => 'ro',
@@ -54,7 +66,7 @@ sub js_package :Path('pack') :Args(1) {
     $c->stash->{js} = $self->_package_defs->thaw( $key );
 
     $c->log->debug(
-         "serving JS pack $key = ("
+         "JS: serving pack $key = ("
         .(join ', ', @{ $c->stash->{js} || [] })
         .')'
        ) if $c->debug;
@@ -80,6 +92,7 @@ sub default :Path {
     my ( $self, $c, @args ) = @_;
 
     $c->stash->{js} = [  File::Spec->catfile( @args ) ];
+    $c->forward('View::JavaScript');
 }
 
 =head2 end
@@ -90,10 +103,6 @@ forwards to View::JavaScript
 
 sub end :Private {
     my ( $self, $c ) = @_;
-
-    # all of the actions in this controller will use View::Javascript
-    # for rendering
-    $c->forward('View::JavaScript');
 
     # handle missing JS with a 404
     if( @{ $c->error } == 1 && $c->error->[0] =~ /^Can't open '/ ) {
@@ -185,8 +194,8 @@ sub action_for_js_package {
 
     my $key = md5_hex( join '!!', @files );
 
-   warn (
-         "defining/inserting JS pack $key = ("
+    $self->_app->log->debug (
+         "JS: define pack $key = ("
         .(join ', ', @files)
         .')'
        ) if $self->_app->debug;
@@ -194,9 +203,9 @@ sub action_for_js_package {
 
     # record files for this particular package of JS
     if( $self->_package_defs->exists( $key ) ) {
-        warn "key $key already exists in js_packs cache" if $self->_app->debug;
+        $self->_app->log->debug("JS: key $key already exists in js_packs cache") if $self->_app->debug;
     } else {
-        warn "key $key is new in js_packs cache" if $self->_app->debug;
+        $self->_app->log->debug("JS: new key $key stored in js_packs cache") if $self->_app->debug;
         $self->_package_defs->freeze( $key => \@files );
     }
 
@@ -222,7 +231,7 @@ sub _resolve_jsan_dependencies {
 has _jsan_params => ( is => 'ro', isa => 'HashRef', lazy_build => 1 );
 sub _build__jsan_params {
     my ( $self ) = @_;
-    my $inc_path = $self->_app->config->{'js_include_path'};
+    my $inc_path = $self->js_include_path;
     die "multi-dir js_include_path not yet supported" if @$inc_path > 1;
     my $js_dir = $inc_path->[0];
     -d $js_dir or die "configured js_include_path '$js_dir' does not exist!\n";

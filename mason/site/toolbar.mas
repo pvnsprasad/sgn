@@ -5,7 +5,7 @@
     <ul class="menu">
        <li><a href="/search/direct_search.pl?search=loci">Genes</a></li>
        <li><a href="/search/direct_search.pl?search=phenotypes">Phenotypes</a></li>
-       <li><a href="/search/direct_search.pl?search=cvterm_name">QTLs/Traits[beta]</a></li>
+       <li><a href="/search/direct_search.pl?search=cvterm_name">QTLs</a></li>
        <li><a href="/search/direct_search.pl?search=unigene">Unigenes</a></li>
        <li><a href="/search/direct_search.pl?search=family">Families</a></li>
        <li><a href="/search/direct_search.pl?search=markers">Markers</a></li>
@@ -54,6 +54,7 @@
            <h3>Projects</h3>
            <ul>
               <li><a href="/solanaceae-project/index.pl">Solanaceae project (SOL)</a></li>
+              <li><a href="/organism/sol100/view">Solanaceae project (SOL)</a></li>
               <li><a href="/genomes/Solanum_lycopersicum/">International Tomato Sequencing Project</a></li>
               <li><a href="/genomes/Solanum_pimpinellifolium/"><i>Solanum pimpinellifolium</i> Project (CSHL)</a></li>
               <li><a href="/about/us_tomato_sequencing.pl">U.S. tomato sequencing project</a></li>
@@ -77,10 +78,9 @@
           <h3>Mapping</h3>
           <ul>
             <li><a href="/cview/view_chromosome.pl?show_offsets=1&amp;show_ruler=1&amp;show_offsets=1">Comparative Viewer</a></li>
-            <li><a href="/tools/fastmapping/">Fast Mapping</a></li>
             <li><a href="/tools/caps_designer/caps_input.pl">CAPS Designer</a></li>
             <li><a href="/tools/seedbac/">Seed BAC Finder</a></li>
-            <li><a href="/qtl">QTL Mapping</a></li>
+            <li><a href="/qtl">solQTL: QTL Mapping</a></li>
           </ul>
        </li>
        <li>

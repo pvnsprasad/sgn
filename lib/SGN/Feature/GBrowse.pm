@@ -10,13 +10,25 @@ use namespace::autoclean;
 
 extends 'SGN::Feature';
 
+use Moose::Util::TypeConstraints;
 use MooseX::Types::Path::Class;
 use HTML::Mason::Interp;
 
-has 'perl_inc' => ( documentation => 'arrayref of paths to set in PERL5LIB if running in fastcgi or cgi mode',
+{ my $pi = subtype as 'ArrayRef';
+  coerce $pi,
+      from 'Value',
+      via { [$_] };
+
+  has 'perl_inc' => ( documentation => 'arrayref of paths to set in PERL5LIB if running in fastcgi or cgi mode',
     is => 'ro',
-    isa => 'ArrayRef',
+    isa => $pi,
     default => sub { [] },
+    coerce => 1,
+   );
+}
+
+has '+description' => (
+    default => 'Genome browser',
    );
 
 has 'conf_dir' => ( documentation => 'directory where GBrowse will look for its conf files',
@@ -40,6 +52,7 @@ has 'static_url' => ( documentation => 'URL base for GBrowse static files',
     isa => 'Str',
     required => 1,
    );
+
 has 'static_dir' => (
     is => 'ro',
     isa => 'Path::Class::Dir',
@@ -120,7 +133,6 @@ after setup => sub {
 };
 
 sub xrefs {
-    return unless @_ == 2;
     my ( $self, $q ) = @_;
     return unless defined $q;
 
@@ -255,5 +267,7 @@ sub render_config_template {
 # $runmode_conf
 # EOC
 # }
+
+__PACKAGE__->meta->make_immutable;
 
 1;

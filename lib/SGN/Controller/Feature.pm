@@ -2,8 +2,7 @@ package SGN::Controller::Feature;
 
 =head1 NAME
 
-SGN::Controller::Organism - Catalyst controller for pages dealing with
-features
+SGN::Controller::Feature - Catalyst controller for pages dealing with features
 
 =cut
 
@@ -15,14 +14,14 @@ use URI::FromHash 'uri';
 use YAML::Any;
 
 has 'schema' => (
-is => 'rw',
-isa => 'DBIx::Class::Schema',
-required => 0,
+    is       => 'rw',
+    isa      => 'DBIx::Class::Schema',
+    required => 0,
 );
 
 has 'default_page_size' => (
-is => 'ro',
-default => 20,
+    is      => 'ro',
+    default => 20,
 );
 
 
@@ -33,27 +32,27 @@ sub delegate_component
 {
     my ($self, $c, $matching_features) = @_;
     my $feature   = $matching_features->next;
-    my @children  = $feature->child_features;
-    my @parents   = $feature->parent_features;
     my $type_name = $feature->type->name;
+    my $template  = "/feature/dhandler";
 
-    eval {
-        $c->forward_to_mason_view(
-            "/feature/$type_name.mas",
-            type    => $type_name,
-            feature => $feature,
-            children=> \@children,
-            parents => \@parents,
-        );
-    };
-    if ($@) {
-        $c->forward_to_mason_view(
-            "/feature/dhandler",
-            feature => $feature,
-            children=> \@children,
-            parents => \@parents,
-        );
+    $c->stash->{feature}     = $feature;
+    $c->stash->{featurelocs} = $feature->featureloc_features;
+
+    # look up site xrefs for this feature
+    my @xrefs = $c->feature_xrefs( $feature->name, { exclude => 'featurepages' } );
+    unless( @xrefs ) {
+        @xrefs = map {
+            $c->feature_xrefs( $_->srcfeature->name.':'.($_->fmin+1).'..'.$_->fmax, { exclude => 'featurepages' } )
+        }
+        $c->stash->{featurelocs}->all
     }
+    $c->stash->{xrefs} = \@xrefs;
+
+    if ($c->view('Mason')->component_exists("/feature/$type_name.mas")) {
+        $template         = "/feature/$type_name.mas";
+        $c->stash->{type} = $type_name;
+    }
+    $c->stash->{template} = $template;
 }
 
 sub validate
@@ -61,8 +60,8 @@ sub validate
     my ($self, $c,$matching_features,$key, $val) = @_;
     my $count = $matching_features->count;
 #   EVIL HACK: We need a disambiguation process
-#   $c->throw( message => "too many features where $key='$val'") if $count > 1;
-    $c->throw( message => "feature with $key = '$val' not found") if $count < 1;
+#   $c->throw_client_error( public_message => "too many features where $key='$val'") if $count > 1;
+    $c->throw_client_error( public_message => "Feature not found") if $count < 1;
 }
 
 sub view_name :Path('/feature/view/name') Args(1) {
@@ -73,31 +72,24 @@ sub view_name :Path('/feature/view/name') Args(1) {
 
 sub _validate_pair {
     my ($self,$c,$key,$value) = @_;
-    $c->throw( message => "$value is not a valid value for $key" )
+    $c->throw_client_error(
+        public_message  => "$value is not a valid value for $key",
+    )
         if ($key =~ m/_id$/ and $value !~ m/\d+/);
 }
 
 sub _view_feature {
     my ($self, $c, $key, $value) = @_;
 
-    if ( $value =~ m/\.fasta$/ ) {
-        $value =~ s/\.fasta$//;
-        $self->_validate_pair($c,$key,$value);
-        my $matching_features = $self->schema
-                                    ->resultset('Sequence::Feature')
-                                    ->search({ $key => $value });
-        my $feature = $matching_features->next;
-        $c->throw( message => "feature with $key = '$value' not found") unless $feature;
-        print $self->render_fasta($feature);
-    } else {
-        $self->_validate_pair($c,$key,$value);
-        my $matching_features = $self->schema
-                                    ->resultset('Sequence::Feature')
-                                    ->search({ $key => $value });
+    $self->_validate_pair($c,$key,$value);
+    my $matching_features = $self->schema
+                                ->resultset('Sequence::Feature')
+                                ->search({ "me.$key" => $value },{
+                                    prefetch => [ 'type', 'featureloc_features' ],
+                                });
 
-        $self->validate($c, $matching_features, $key => $value);
-        $self->delegate_component($c, $matching_features);
-    }
+    $self->validate($c, $matching_features, $key => $value);
+    $self->delegate_component($c, $matching_features);
 }
 
 sub view_id :Path('/feature/view/id') Args(1) {
@@ -231,26 +223,6 @@ sub _feature_types {
                     },
                 )
     ];
-}
-
-sub render_fasta {
-    my ($self, $feature) = @_;
-
-    my $matching_features = $self->schema
-                                ->resultset('Sequence::Feature')
-                                ->search({ name => $feature->name });
-
-    my $sequence  = Bio::PrimarySeq->new(
-                    -id  => $feature->name,
-                    -seq => $feature->residues,
-                    );
-    my $fh = Bio::SeqIO->new(
-            -format => 'fasta',
-            -fh     => \*STDOUT)
-            ->write_seq( $sequence );
-    my $output = CGI->new->header( -type => 'text/txt' );
-    $output   .= $_ while <$fh>;
-    return $output;
 }
 
 __PACKAGE__->meta->make_immutable;

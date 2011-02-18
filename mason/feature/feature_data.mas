@@ -1,27 +1,43 @@
 <%args>
     $feature
-    $title => 'Feature Data'
+    $title   => 'Feature'
     $species => undef
+    $description_from => [ $feature ]
+    $featurelocs
 </%args>
+<%once>
+    use SGN::View::Feature qw/
+        feature_link cvterm_link organism_link feature_length
+        get_description
+        location_list_html
+        /;
+    use CXGN::Page::FormattingHelpers qw/info_table_html/;
+    use CXGN::Tools::Text qw/commify_number/;
+</%once>
 <%init>
-    use SGN::View::Feature qw/gbrowse_link feature_link/;
+    my $description  = join( '<hr />', grep $_, map get_description($_), @$description_from );
+    my ($length,$locations) = feature_length($feature);
+    my $feature_length      = commify_number($length) . " bases";
+    if ($locations) {
+        $feature_length .= " in $locations location" . ($locations > 1 ? 's' : '');
+    };
 </%init>
-<%perl>
-    my ($description) = map { $_->value } grep { $_->type->name eq 'Note' } $feature->featureprops->all;
-</%perl>
-<&| /page/info_section.mas,
-    title       => $title,
-    subtitle    => $feature->is_obsolete ? 'WARNING: This feature is obsolete' : '',
-    collapsible => 1,
-&>
-    <b>Name</b>: <% feature_link($feature) %> <br/>
-    <b>Feature Type</b>: <a href="/chado/cvterm.pl?cvterm_id=<% $feature->type->id %>"><% $feature->type->name %></a><br/>
-    <b>Description</b>: <% $description %><br/>
-    <b>Analysis</b>: <% $feature->is_analysis ? 'Yes' : 'No' %><br/>
-    <b>Organism Name</b>: <& /feature/organism_link.mas,
-                                organism => $feature->organism,
-                                text => $species,
-                           &><br/>
-    <& /feature/feature_length.mas, feature => $feature &>
-    <a href="<% gbrowse_link($feature) %>">GBrowse</a><br/>
-</&>
+
+<% info_table_html(
+    'Name'          => feature_link( $feature ),
+    'Type'          => cvterm_link( $feature->type, 'caps' ),
+    'Location(s)'   => join('', map "<div>$_</div>\n", location_list_html( $feature, $featurelocs )),
+    'Length'        => $feature_length,
+
+    'Organism' => organism_link($feature->organism),
+     __border => 0,
+     __multicol => 4
+   )
+%>
+
+<% info_table_html(
+     'Description'   => $description || '<span class="ghosted">none</span>',
+     __border => 0,
+)%>
+
+<& /feature/dbxref.mas, dbxref => $feature->dbxref &>
