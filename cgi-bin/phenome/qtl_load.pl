@@ -461,16 +461,16 @@ sub load_pop_details {
 sub store_accession {
     my $self      = shift;
     my $accession = shift;
-    my $dbh       = $self->get_dbh();
+    my $dbh       = $c->dbc->dbh;
 
-    print STDERR "organism_id: $accession\n";
+    print STDERR "acccession: $accession\n";
     my ( $species, $cultivar ) = split( /cv|var|cv\.|var\./, $accession );
     $species  =~ s/^\s+|\s+$//;
     $cultivar =~ s/\.//;
     $cultivar =~ s/^\s+|\s+$//;
     $species = ucfirst($species);
 
-    print STDERR "$accession: species:$species, cultivar:$cultivar\n";
+    print STDERR "accession: $accession,  species:$species, cultivar:$cultivar\n";
     my $schema = $c->dbic_schema('Bio::Chado::Schema', 'sgn_chado');
 
     my $organism = CXGN::Chado::Organism->new_with_species( $schema, $species );
@@ -480,92 +480,43 @@ sub store_accession {
     my $organism_name        = $organism->get_species();
 
     eval {
-        my $sth = $dbh->prepare(
-            "SELECT accession_id, chado_organism_id, common_name 
-                                    FROM sgn.accession 
-                                    WHERE common_name ILIKE ?"
-        );
-        $sth->execute($cultivar);
-        my ( $accession_id, $chado_organism_id, $common_name ) =
-          $sth->fetchrow_array();
-        print STDERR
-"select existing accession: $accession_id, $chado_organism_id, $common_name\n";
-
+        my $row = $schema->resultset('Stock::Stock')->search( { 
+            name =>"$cultivar", 
+            organism_id = $existing_organism_id
+        } );
+       
+        my ( $accession_id, $organism_id, $common_name ) = ( $row->stock_id, $row->organism_id, $row->name );
+     
+       print STDERR " accession exists in stock: $accession_id, $organism_id, $common_name\n";
+      
         if ($accession_id) {
-            unless ($chado_organism_id) {
-                $sth = $dbh->prepare(
-                    "UPDATE sgn.accession 
-                                             SET chado_organism_id = ? 
-                                             WHERE accession_id = $accession_id"
-                );
-                $sth->execute($existing_organism_id);
+            unless ($organism_id) {                
+                $row->organism_id($new_organism_id);
+                $row->update;
             }
         }
         elsif ( !$accession_id ) {
+            $row->name($cultivar);
+            $row->organism_id($new_organism_id);
+            #$row->uniquename($uniquename);
+            #$row->type_id($type_id);
 
-            $sth = $dbh->prepare(
-                "INSERT INTO sgn.accession 
-                                             (common_name, chado_organism_id) 
-                                             VALUES (?,?)"
-            );
-            $sth->execute( $cultivar, $existing_organism_id );
-            $accession_id = $dbh->last_insert_id( "accession", "sgn" );
-
-            #my $accession = CXGN::Accession->new($dbh, $accession_id);
-            #$common_name = $accession->accession_common_name();
-            print STDERR
-              "inserted: $accession_id, $chado_organism_id, $common_name\n";
-        }
-
-        my ( $accession_names_id, $accession_name );
-
-        unless ( !$common_name ) {
-            $sth = $dbh->prepare(
-                "SELECT accession_name_id, accession_name
-                                    FROM sgn.accession_names 
-                                    WHERE accession_name ILIKE ?"
-            );
-            $sth->execute($common_name);
-
-            ( $accession_names_id, $accession_name ) = $sth->fetchrow_array();
-            print STDERR
-"selected existing accession_names: $accession_names_id, $accession_name\n";
-        }
-        unless ($accession_names_id) {
-            $sth = $dbh->prepare(
-                "INSERT INTO sgn.accession_names 
-                                              (accession_name, accession_id) 
-                                               VALUES (?, ?)"
-            );
-            $sth->execute( $common_name, $accession_id );
-
-            $accession_names_id =
-              $dbh->last_insert_id( "accession_names", "sgn" );
-            print STDERR
-              "inserted accession_names : $common_name, $accession_id\n";
-
-        }
-
-        unless ( !$accession_names_id ) {
-            $sth = $dbh->prepare(
-                "UPDATE sgn.accession 
-                                             SET accession_name_id = ? 
-                                             WHERE accession_id = ?"
-            );
-            $sth->execute( $accession_names_id, $accession_id );
-            print STDERR "updated accession: with $accession_names_id\n";
-        }
-
-        if (@_) {
-            print STDERR "@_\n";
-            $dbh->rollback();
-            return 0;
-        }
-        else {
-            $dbh->commit();
-            return $accession_id;
+            $row->update;
+            
+            print STDERR "inserted: $accession_id, $new_organism_id, $cultivar\n";
         }
     };
+           
+    if ($@) {
+        print STDERR "Failed storing accessions: $@\n";
+        $dbh->rollback();
+        return 0;
+    }
+    else {
+        $dbh->commit();
+        print STDERR "succeded storing accessions.\n";
+        return $accession_id;
+    }
 
 }
 
