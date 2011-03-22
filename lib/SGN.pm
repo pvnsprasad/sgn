@@ -45,6 +45,7 @@ use Catalyst qw/
      +SGN::Role::Site::Mason
      +SGN::Role::Site::SiteFeatures
      +SGN::Role::Site::TestMode
+     AutoCRUD
  /;
 
 extends 'Catalyst';

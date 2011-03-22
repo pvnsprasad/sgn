@@ -44,6 +44,7 @@ my $build = SGN::Build->new(
         'Catalyst::Controller::REST'               => 0,
         'Catalyst::Action::RenderView'             => 0,
         'Catalyst::Plugin::Authentication'         => 0,
+        'Catalyst::Plugin::AutoCRUD'               => 0,
         'Catalyst::Plugin::Authorization::Roles'   => 0,
         'Catalyst::Plugin::ConfigLoader'           => 0,
         'Catalyst::Plugin::Static::Simple'         => 0,
