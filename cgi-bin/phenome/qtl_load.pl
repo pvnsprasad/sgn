@@ -462,49 +462,31 @@ sub store_accession {
     my $self      = shift;
     my $accession = shift;
     my $dbh       = $c->dbc->dbh;
-
-    print STDERR "acccession: $accession\n";
+   
     my ( $species, $cultivar ) = split( /cv|var|cv\.|var\./, $accession );
     $species  =~ s/^\s+|\s+$//;
     $cultivar =~ s/\.//;
     $cultivar =~ s/^\s+|\s+$//;
     $species = ucfirst($species);
 
-    print STDERR "accession: $accession,  species:$species, cultivar:$cultivar\n";
     my $schema = $c->dbic_schema('Bio::Chado::Schema', 'sgn_chado');
 
     my $organism = CXGN::Chado::Organism->new_with_species( $schema, $species );
     $self->check_organism( $organism, $species, $cultivar );
 
-    my $existing_organism_id = $organism->get_organism_id();
+    my $organism_id = $organism->get_organism_id();
     my $organism_name        = $organism->get_species();
 
+    my $cvterm = $schema->resultset('Cv::Cvterm')->find(name =>'accession');
+ 
+    my $row;
     eval {
-        my $row = $schema->resultset('Stock::Stock')->search( { 
-            name =>"$cultivar", 
-            organism_id = $existing_organism_id
-        } );
-       
-        my ( $accession_id, $organism_id, $common_name ) = ( $row->stock_id, $row->organism_id, $row->name );
-     
-       print STDERR " accession exists in stock: $accession_id, $organism_id, $common_name\n";
-      
-        if ($accession_id) {
-            unless ($organism_id) {                
-                $row->organism_id($new_organism_id);
-                $row->update;
-            }
-        }
-        elsif ( !$accession_id ) {
-            $row->name($cultivar);
-            $row->organism_id($new_organism_id);
-            #$row->uniquename($uniquename);
-            #$row->type_id($type_id);
-
-            $row->update;
-            
-            print STDERR "inserted: $accession_id, $new_organism_id, $cultivar\n";
-        }
+        $row = $schema->resultset('Stock::Stock')->find_or_create( { 
+            name        => $cultivar, 
+            organism_id => $organism_id,
+            uniquename  => $species . $cultivar,
+            type_id     => $cvterm->cvterm_id,
+        } );      
     };
            
     if ($@) {
@@ -513,9 +495,8 @@ sub store_accession {
         return 0;
     }
     else {
-        $dbh->commit();
-        print STDERR "succeded storing accessions.\n";
-        return $accession_id;
+        print STDERR "succeded storing accessions\n";
+        return $row->stock_id;
     }
 
 }
