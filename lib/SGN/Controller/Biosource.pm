@@ -47,7 +47,7 @@ under 'schema'.
 sub auto : Private {
     my ( $self, $c ) = @_;
     $c->stash(
-        schema => $c->dbic_schema('CXGN::Biosource::Schema','sgn_chado'),
+        schema => $c->model('Biosource')->schema,
       );
 }
 

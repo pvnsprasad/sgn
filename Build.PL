@@ -42,6 +42,7 @@ my $build = SGN::Build->new(
         'Catalyst::Runtime'                        => '5.80024',
         'Catalyst::Controller::CGIBin'             => '0.029',
         'Catalyst::Controller::REST'               => 0,
+        'Catalyst::Controller::DBIC::API::REST'    => '2.000000',
         'Catalyst::Action::RenderView'             => 0,
         'Catalyst::Plugin::Authentication'         => 0,
         'Catalyst::Plugin::Authorization::Roles'   => 0,
