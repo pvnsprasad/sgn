@@ -2,6 +2,7 @@
     $feature
     $featurelocs
     $blast_url => undef
+    $seq_download_url => undef
     $xrefs     => []
 </%args>
 
@@ -55,11 +56,23 @@
 </&>
 
 <&| /page/info_section.mas,
+     title         => 'Sequence',
+     collapsible   => 1,
+     collapsed     => 0,
+     hide_if_empty => 1,
+ &>
+    <& /feature/residues.mas,
+            feature   => $feature,
+            blast_url => $blast_url,
+            seq_download_url => $seq_download_url
+    &>
+</&>
+
+<&| /page/info_section.mas,
      title         => 'Region sequence(s)',
      subtitle      => "sequence underlying each location of this feature",
      collapsible   => 1,
      collapsed     => 0,
-     is_empty      => !!$feature->seq,
      hide_if_empty => 1,
  &>
     <& /feature/genomic_sequence.mas,

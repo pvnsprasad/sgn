@@ -6,7 +6,7 @@ backend for objects linked with stocks
 
 =head1 DESCRIPTION
 
-Add new stock properties, stock dbxrefs and so on.. 
+Add new stock properties, stock dbxrefs and so on.
 
 =head1 AUTHOR
 
@@ -24,7 +24,7 @@ use List::MoreUtils qw /any /;
 use Try::Tiny;
 use CXGN::Phenome::Schema;
 use CXGN::Phenome::Allele;
-use CXGN::Page::FormattingHelpers qw / columnar_table_html info_table_html /;
+use CXGN::Page::FormattingHelpers qw/ columnar_table_html info_table_html /;
 use Scalar::Util qw(looks_like_number);
 
 BEGIN { extends 'Catalyst::Controller::REST' }
@@ -293,8 +293,9 @@ sub display_ontologies_GET  {
             my $reference_dbxref = $reference ? $reference->pub_dbxrefs->first->dbxref : undef;
             my $reference_url = $reference_dbxref ? $reference_dbxref->db->urlprefix . $reference_dbxref->db->url . $reference_dbxref->accession : undef;
             my $reference_acc = $reference_dbxref ? $reference_dbxref->accession : undef;
+            my $display_ref = $reference_acc =~ /^\d/ ? 1 : 0;
             # the submitter is a sp_person_id prop
-            my ($submitter) = $props->search( {'type.name' => 'sgn sp_person_id'} , { join => 'type' } );
+            my ($submitter) = $props->search( {'type.name' => 'sp_person_id'} , { join => 'type' } );
             my $sp_person_id = $submitter ? $submitter->value : undef;
             my $person= CXGN::People::Person->new($c->dbc->dbh, $sp_person_id);
             my $submitter_info = qq| <a href="solpeople/personal_info.pl?sp_person_id=$sp_person_id">| . $person->get_first_name . " " . $person->get_last_name . "</a>" ;
@@ -308,7 +309,7 @@ sub display_ontologies_GET  {
             $ev_string .=  $ev_name . "<br />";
             $ev_string .= $evidence_desc_name . "<br />" if $evidence_desc_name;
             $ev_string .= "<a href=\"$ev_with_url\">$ev_with_acc</a><br />" if $ev_with_acc;
-            $ev_string .="<a href=\"$reference_url\">$reference_acc</a><br />" if $reference_acc;
+            $ev_string .="<a href=\"$reference_url\">$reference_acc</a><br />" if $display_ref;
             $ev_string .= "$submitter_info $evidence_date $obsolete_link";
             $ont_hash{$cv_name}{$ontology_details} .= $ev_string;
         }
@@ -450,9 +451,9 @@ sub associate_ontology_GET :Args(0) {
                 $s_cvterm->create_stock_cvtermprops(
                     { 'sp_person_id' => $logged_person_id  } , { cv_name =>'local' , autocreate=>1} );
                 #store today's date
-                ##NEED TO FIGURE OUT HOW TO CALL THE SQL FUNCTION HERE 
-                #$s_cvterm->create_stock_cvtermprops(
-                #    { 'create_date' => "\'now()'"  } , { cv_name =>'local' , autocreate=>1} );
+                my $val = "now()";
+                $s_cvterm->create_stock_cvtermprops(
+                    { 'create_date' =>  \$val   } , { cv_name =>'local' , autocreate=>1, allow_duplicate_values => 1} );
 
                 $c->stash->{rest} = ['success'];
                 return;
@@ -542,5 +543,35 @@ sub unobsolete_annotation_POST :Args(1) {
     } else { $response->{error} = 'stock_cvtermprop $stock_cvtermprop_id does not exists! '; }
     $c->stash->{rest} = $response;
 }
+
+=head2 autocomplete
+
+Public Path: /ajax/stock/trait_autocomplete
+
+Autocomplete a trait name.  Takes a single GET param,
+C<term>, responds with a JSON array of completions for that term.
+Finds only traits that exist in nd_experiment_phenotype
+
+=cut
+
+sub trait_autocomplete : Local : ActionClass('REST') { }
+
+sub trait_autocomplete_GET :Args(0) {
+    my ( $self, $c ) = @_;
+
+    my $term = $c->req->param('term');
+    # trim and regularize whitespace
+    $term =~ s/(^\s+|\s+)$//g;
+    $term =~ s/\s+/ /g;
+    my @response_list;
+    my $q = "select distinct cvterm.name from stock join nd_experiment_stock using (stock_id) join nd_experiment_phenotype using (nd_experiment_id) join phenotype using (phenotype_id) join cvterm on cvterm_id = phenotype.observable_id WHERE cvterm.name ilike ?";
+    my $sth = $c->dbc->dbh->prepare($q);
+    $sth->execute( '%'.$term.'%');
+    while  (my ($term_name) = $sth->fetchrow_array ) {
+        push @response_list, $term_name;
+    }
+    $c->{stash}->{rest} = \@response_list;
+}
+
 
 1;
