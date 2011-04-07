@@ -5,8 +5,8 @@
   $pagination_link_maker      => undef
   $request                    => undef
   $schema                     => undef
-  $sp_person_autocomplete_uri => undef
-  $trait_autocomplete_uri     => undef
+  $sp_person_autocomplete_uri => '/ajax/people/autocomplete'
+  $trait_autocomplete_uri     => '/ajax/stock/trait_autocomplete'
 </%args>
 
 <%once>
@@ -19,7 +19,7 @@
 
 $form_opts = { stock_types => stock_types($schema), organisms=>stock_organisms($schema)}
 if (!$form_opts) ;
-my $new_stock_link = qq|<a href="/stock/0/new">Submit new stock</a>|;
+my $new_stock_link = qq| <a href="/stock/0/new">Submit new stock</a> \| <a href=../../phenome/qtl_form.pl>QTL Population</a>|;
 
 </%perl>
 

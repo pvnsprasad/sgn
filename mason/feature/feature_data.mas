@@ -20,6 +20,7 @@
 <% info_table_html(
     ( $description ? ( 'Description'   => $description || '<span class="ghosted">none</span>' ) : () ),
     ( $featurelocs->count ? ( 'Location(s)'   => join('', map "<div>$_</div>\n", location_list_html( $feature, $featurelocs )) ) : () ),
+    ( $cvterms_html =~ /\S/ ? ( 'Ontology term(s)' => $cvterms_html ) : () ),
      __border => 0,
 )%>
 
@@ -39,11 +40,9 @@
 
     my $description  = join( '<hr />', grep $_, map get_description($_), @$description_from );
 
-    my ($length,$locations) = feature_length($feature);
-    $length &&= commify_number($length) . " bases";
-    if ($locations) {
-        $length .= " in $locations location" . ($locations > 1 ? 's' : '');
-    };
+    my $length = commify_number( feature_length( $feature, $feature->search_related('featureloc_features') ) );
+
+    my $cvterms_html = $m->scomp( '/feature/feature_cvterms.mas', feature => $feature );
 
     my $synonyms =
         join ', ',

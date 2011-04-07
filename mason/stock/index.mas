@@ -74,16 +74,16 @@ my $stockprop_cv = $schema->resultset("Cv::Cv")->search( {
  'me.name' => 'stock_property'} );
 
 
-my $type_name;
+my ($type_name, $uniquename);
 my $type = $stock->get_object_row ? $stock->get_object_row->type : undef;
 $type_name  = $type->name() if $type;
-
+$uniquename = $stock->get_uniquename if $type;
 #################
 my $is_owner = $stockref->{is_owner};
 
 my $this_page = "/stock/$stock_id/view";
 
-my $add_image_link = qq|<a href="/image/add?type_id=$stock_id&action=new&type=stock&refering_page=/stock/view/id/$stock_id">[Add new image]</a>|;
+my $add_image_link = qq|<a href="/image/add?type_id=$stock_id&action=new&type=stock&refering_page=$this_page">[Add new image]</a>|;
 my $image_ids =  $stockref->{props}->{'sgn image_id'} || [] ;
 my $stockprops = $stockref->{props};
 
@@ -116,30 +116,39 @@ my $members_phenotypes = $stockref->{members_phenotypes};
 
 ############################
 my $map_html = $stockref->{map_html};
-my $map = CXGN::Cview::Map::SGN::Genotype->new($dbh, $stock_id);
-if ($map->get_chromosome_count > 1 ) {
-  my $overview = CXGN::Cview::MapOverviews::Generic->new($map,
-                                                         {
-                                                          dbh=> $dbh,
-                                                          basepath => $stockref->{cview_basepath},
-                                                          tempfiles_subdir => $stockref->{cview_tmp_dir } });
-
-  if ($overview) {
-    $overview->render_map();
-    $map_html .= $overview->get_image_html(); 
+my $map;
+if ($stock_id) {
+  $map = CXGN::Cview::Map::SGN::Genotype->new($dbh, $stock_id);
+  if ($map->get_chromosome_count > 1 ) {
+    my $overview = CXGN::Cview::MapOverviews::Generic->new($map,
+                                                           {
+                                                            dbh=> $dbh,
+                                                            basepath => $stockref->{cview_basepath},
+                                                            tempfiles_subdir => $stockref->{cview_tmp_dir } });
+    if ($overview) {
+      $overview->render_map();
+      $map_html .= $overview->get_image_html();
+    }
   }
 }
 #########################################
 my $has_qtl_data = $stockref->{has_qtl_data};
 
 
-my $dbxrefs = $stockref->{dbxrefs};
 my $new_pub_link = $curator || $submitter || $sequencer  ?   qq|<a href="/chado/add_publication.pl?type=stock&amp;type_id=$stock_id&amp;refering_page=$this_page&amp;action=new"> [Associate publication] </a>| : qq|<span class=\"ghosted\">[Associate publication]</span>| ;
 
-my $pubmeds = $dbxrefs->{PMID} || [];
 my $pub_count = scalar( keys %$pubs );
-## EUSOL, tgrc (stock_dbxref)
 
+## EUSOL, tgrc (stock_dbxref)
+my $dbxrefs = $stockref->{dbxrefs};
+my %source_dbs;
+foreach my $db_name ( keys %$dbxrefs ) {
+  foreach my $dbxref ( @{ $dbxrefs->{$db_name} } ) {
+    my $url = $dbxref->db->urlprefix . $dbxref->db->url;
+    $url .= $dbxref->accession if $url =~ m/\?$|\=$/ ;
+    $source_dbs{$url} = $db_name . ": " . $dbxref->accession if $url;
+  }
+}
 my $new_ontology_link = !$person_id ? qq|<a href="/solpeople/login.pl">[log-in to associate new ontology term]</a> | : '' ;
 
 </%perl>
@@ -148,10 +157,10 @@ my $new_ontology_link = !$person_id ? qq|<a href="/solpeople/login.pl">[log-in t
 <& /util/import_javascript.mas, classes => ["jquery", "thickbox", "CXGN.Page.FormattingHelpers"] &>
 
 
-<& /page/page_title.mas, title=> ucfirst($type_name)  .  ": " . $stock->get_uniquename()  . "\n" &>
+<& /page/page_title.mas, title=> ucfirst($type_name)  .  ": " . $uniquename  . "\n" &>
 
 
-<&| /page/info_section.mas, title=>"Stock details" , subtitle => "<a href=/stock/search/>Back to stock search</a>"  &>
+<&| /page/info_section.mas, title=>"Stock details" , subtitle => "<a href=../../phenome/qtl_form.pl>New QTL population</a> | <a href=/stock/search/>Back to stock search</a>"  &>
 
   <& /page/form.mas,
   object_type=>'stock',
@@ -161,10 +170,14 @@ my $new_ontology_link = !$person_id ? qq|<a href="/solpeople/login.pl">[log-in t
   form_div_name=>'stock_details',
   js_object_name=> 'stockForm',
   page_url => "/stock/$stock_id/view/" ,
-  alternate_new_button => '<a href ="/stock/new">[New]</a>'
+  alternate_new_button => '<a href ="/stock/0/new">[New]</a>'
   &>
 
 <div><b>Stock editors: </b> <% $editor_link %></div>
+<br />
+% foreach my $db_url (keys %source_dbs) {
+<div><a href=<% $db_url %>><% $source_dbs{$db_url} %></a> </div>
+%}
 <br />
 
    <&| /page/info_section.mas, title => "Synonyms" , is_subsection => 1 &>
