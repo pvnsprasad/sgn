@@ -10,7 +10,16 @@
 my @properties = map {
     my $fp = $_;
     my $name = cvterm_link( $fp->type, 'ucfirst' );
-    $name => $fp->value
+
+    # try to link the featureprop with site xrefs
+    my @xrefs = $c->feature_xrefs( $fp->value );
+    if( @xrefs > 1 ) {
+      $name => $fp->value
+    } elsif( @xrefs == 1 ) {
+      $name => $m->scomp('/sitefeatures/default/xref/link.mas', xref => $xrefs[0] )
+    } else {
+      $name => $fp->value
+    }
    }
    $feature->search_related(
        'featureprops',
