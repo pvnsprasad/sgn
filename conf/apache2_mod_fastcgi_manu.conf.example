@@ -1,0 +1,26 @@
+<VirtualHost *:80>
+
+    ServerName sgn.localhost.localdomain
+
+    PerlWarn On
+    PerlTaintCheck On
+
+    LogLevel error
+
+     ServerSignature Off
+
+     ServerAdmin sgn-feedback@solgenomics.net
+
+     #where to write error messages
+     ErrorLog  /var/log/sgn-site/error.log
+     CustomLog /var/log/sgn-site/access.log combined
+
+     ErrorDocument 500 "Internal server error: The server encountered an internal error or misconfiguration and was unable to complete your request.  Additionally, an error report could not be automatically sent, please help us by informing us of the error at sgn-feedback@solgenomics.net."
+
+     #SetEnv PERL5LIB "/home/rob/cxgn/sgn/lib:/home/rob/cxgn/ITAG/lib:/home/rob/cxgn/biosource/lib:/home/rob/cxgn/Phenome/lib:/home/rob/cxgn/tomato_genome/lib:/home/rob/cxgn/Cview/lib:/home/rob/cxgn/cxgn-corelibs/lib:/home/rob/cpan-lib/lib/perl5:/home/rob/cpan-lib/lib/perl5/x86_64-linux-gnu-thread-multi"
+
+     FastCgiServer /home/rob/cxgn/sgn/bin/sgn_fastcgi.pl -processes 3 -initial-env PERL5LIB=/home/rob/cxgn/sgn/lib:/home/rob/cxgn/ITAG/lib:/home/rob/cxgn/biosource/lib:/home/rob/cxgn/Phenome/lib:/home/rob/cxgn/tomato_genome/lib:/home/rob/cxgn/Cview/lib:/home/rob/cxgn/cxgn-corelibs/lib:/home/rob/cpan-lib/lib/perl5:/home/rob/cpan-lib/lib/perl5/x86_64-linux-gnu-thread-multi
+
+     Alias /  /home/rob/cxgn/sgn/bin/sgn_fastcgi.pl/
+
+</VirtualHost>
