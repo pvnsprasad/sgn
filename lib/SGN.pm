@@ -158,8 +158,8 @@ sub _update_static_symlinks {
             $self->log->debug("symlinking static dir '$link->[0]' -> '$l1_rel'") if $self->debug;
         }
         unlink $link->[1];
-        symlink( $link->[0], $link->[1] )
-            or die "$! symlinking $link->[0] => $link->[1]";
+        symlink( $link->[0], $link->[1] );
+        #-w $link->[1] or die "$! symlinking $link->[0] => $link->[1]";
     }
 }
 
