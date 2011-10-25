@@ -1,5 +1,6 @@
 <%args>
 $schema
+$dbstats => {}
 </%args>
 
 <table cellpadding="0">
@@ -25,6 +26,7 @@ $schema
 </div>
 </div>
 
+<& homepage/dbstats.mas, loci=>$dbstats->{loci}, markers=>$dbstats->{markers}, accessions=>$dbstats->{accessions}, images=>$dbstats->{images}, features=>$dbstats->{features} &><br />
 <& homepage/locus_of_the_week.mas &> <br />
 <& homepage/labs.mas &>
 </td><td width="300">

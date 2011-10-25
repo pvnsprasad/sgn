@@ -7,6 +7,7 @@ use CatalystX::GlobalContext ();
 
 use CXGN::Login;
 use CXGN::People::Person;
+use CXGN::DB::Stats;
 
 BEGIN { extends 'Catalyst::Controller' }
 
@@ -38,6 +39,15 @@ sub index :Path :Args(0) {
     # Hello World
     $c->stash->{template} = '/index.mas';
     $c->stash->{schema}   = $c->dbic_schema('SGN::Schema');
+    
+    $c->stash->{dbstats}->{features}=sprintf "%8D", $c->dbic_schema('Bio::Chado::Schema')->resultset('Sequence::Feature')->count();
+    $c->stash->{dbstats}->{loci}    =sprintf "%8D",$c->dbic_schema('CXGN::Phenome::Schema')->resultset('Locus')->count();
+    $c->stash->{dbstats}->{images}  =sprintf "%8D",$c->dbic_schema('CXGN::Metadata::Schema')->resultset('MdImage')->count();
+    $c->stash->{dbstats}->{accessions} = sprintf "%8D",$c->dbic_schema('Bio::Chado::Schema')->resultset('Stock::Stock')->count();
+    
+    $c->stash->{dbstats}->{markers} = sprintf "%8D",$c->dbic_schema('SGN::Schema')->resultset('Marker')->count();
+    
+
 }
 
 =head2 default
