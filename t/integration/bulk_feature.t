@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 34;
+use Test::More tests => 36;
 
 use Digest::SHA1 qw/sha1_hex/;
 use Data::Dumper;
@@ -17,6 +17,29 @@ my $poly_cvterm     = create_test('Cv::Cvterm',        { name => 'polypeptide' }
 my $poly_feature    = create_test('Sequence::Feature', { type => $poly_cvterm  });
 
 # TODO: these tests depend on live data.
+
+$mech->with_test_level( local => sub {
+    my $id = 'GSVIV12X_chr7';
+    $mech->get_ok('/bulk/feature');
+    $mech->submit_form_ok({
+        form_name => "bulk_feature",
+        fields    => {
+            ids => $id,
+        },
+    }, "submit bulk_feature with something that has a large_residue") or diag $mech->content;
+    my $sha1  = sha1_hex($id);
+    my @flinks = $mech->find_all_links( url_regex => qr{/bulk/feature/download/$sha1\.fasta} );
+
+    cmp_ok(@flinks, '==', 1, "found one FASTA download link for $sha1.fasta");
+    $mech->links_ok( \@flinks );
+
+    for my $url (map { $_->url } (@flinks)) {
+        $mech->get( $url );
+        my $length = length($mech->content);
+        cmp_ok($length, '>', 0,"$url has a content length $length > 0");
+        $mech->content_unlike(qr/Caught exception/);
+    }
+});
 $mech->with_test_level( local => sub {
     # do it twice to test for bugs relating to the cache directory getting removed
     submit_bulk_form();
