@@ -45,6 +45,7 @@ use CXGN::Page;
 use Bio::Chado::Schema;
 use Storable qw /store retrieve/;
 use CGI;
+use Path::Class;
 
 use CatalystX::GlobalContext qw( $c );
 
@@ -521,6 +522,32 @@ sub store_accession {
 
 }
 
+
+sub check_trait_columns {
+    my ($self, $file) = @_;
+
+    my $file_h = file($file)->open || die "Can't open file: $! \n";
+
+    my $header = <$file_h>;
+    chomp($header);
+    my @fields = split /\t/, $header;    
+    @fields = map { lc( $_ ) } @fields;
+   		   
+    my $error;
+
+    if (   $fields[0] ne "traits"
+	   || $fields[1] ne "definition"
+	   || $fields[2] ne "unit" 
+	)
+    {
+      $error = "Data columns in the traits file need to be in the order of: 
+                <b>traits -> definition -> unit</b>. <br/> Now they are in 
+                the order of <b><i>$fields[0] -> $fields[1] -> $fields[2]</i></b>.
+                \n";
+    }
+    return $error;
+
+}
 =head2 store_traits
 
  Usage: my ($true_or_false) = $self->store_traits($file);
@@ -535,38 +562,27 @@ sub store_accession {
 =cut
 
 sub store_traits {
-    my $self         = shift;
-    my $file         = shift;
+    my ($self, $file) = @_;        
     my $pop_id       = $self->get_population_id();
     my $sp_person_id = $self->get_sp_person_id();
-    my $dbh          = $self->get_dbh();
+    my $dbh          = $c->dbc->dbh();
 
-    open( F, "<$file" ) || die "Can't open file $file.";
+    my $file_h = file($file)->open || die "Can't open file: $! \n";
 
-    my $header = <F>;
+    my $header = <$file_h>;
     chomp($header);
-    my @fields = split /\t/, $header;    
-    @fields = map { lc( $_ ) } @fields;
+    my @fields = map { lc ($_) } split /\t/, $header;    
+   # @fields = map { lc( $_ ) } @fields;
    		   
     my ( $trait, $trait_id, $trait_name, $unit, $unit_id );
-
-    if (   $fields[0] ne "traits"
-	   || $fields[1] ne "definition"
-	   || $fields[2] ne "unit" 
-	)
+    my $error = $self->check_trait_columns($file);
+    if ( $error )
     {
-        my $error =
-          "Data columns in the traits file need to be in the order of: 
-                    <b>traits -> definition -> unit</b>. <br/>
-                    Now they are in the order of <b><i>$fields[0] -> $fields[1] 
-                    -> $fields[2]</i></b>.\n";
-
-        $self->trait_columns($error);
+        $self->show_trait_error($error);
     }
     else {
-
         eval {
-            while (<F>)
+            while (<$file_h>)
             {
                 chomp;
                 my (@values) = split /\t/;
@@ -1384,7 +1400,7 @@ sub guideline {
     return qq |<a  href="http://docs.google.com/View?id=dgvczrcd_1c479cgfb">Guidelines</a> |;
 }
 
-=head2 trait_columns
+=head2 show_trait_error
 
  Usage: $self->trait_columns($error);
  Desc: checks if the trait file has the right order
@@ -1398,7 +1414,7 @@ sub guideline {
 
 =cut
 
-sub trait_columns {
+sub show_trait_error {
     my ($self, $trait_error) = @_;
    
     if ($trait_error) {
