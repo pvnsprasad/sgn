@@ -15,7 +15,7 @@ use Catalyst::Runtime 5.80;
 use Catalyst qw/
     -Debug
     ConfigLoader
-    Static::Simple
+    Static::Simple  
 /;
 
 extends 'Catalyst';
@@ -32,14 +32,35 @@ $VERSION = eval $VERSION;
 # with an external configuration file acting as an override for
 # local deployment.
 
+# __PACKAGE__->config(
+#     name => 'solGS',
+#     # Disable deprecated behavior needed by old applications
+#     disable_component_resolution_regex_fallback => 1,
+# );
+
+# # Start the application
+# __PACKAGE__->setup();
+
 __PACKAGE__->config(
+
     name => 'solGS',
-    # Disable deprecated behavior needed by old applications
+    root => 'static',
+
     disable_component_resolution_regex_fallback => 1,
+
+    #default_view => 'Mason',
+
+    # Static::Simple configuration
+    static => {
+        dirs => [qw[ static img  ]],
+    }
 );
 
-# Start the application
-__PACKAGE__->setup();
+
+
+
+__PACKAGE__->setup;
+
 
 
 =head1 NAME
