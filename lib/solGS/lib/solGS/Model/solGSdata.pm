@@ -61,7 +61,7 @@ sub file_paths {
     my $pheno_path = catfile($solgs_path, 'phenotype');
   
     mkpath ([$geno_path, $pheno_path], 0, 0755);        
-    return  $genopath, $pheno_path;
+    return  $geno_path, $pheno_path;
    
 }
 
