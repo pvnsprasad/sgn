@@ -15,7 +15,13 @@ use Catalyst::Runtime 5.80;
 use Catalyst qw/
     -Debug
     ConfigLoader
-    Static::Simple  
+    Static::Simple       
+     +SGN::Role::Site::Config
+     +SGN::Role::Site::DBConnector
+     +SGN::Role::Site::DBIC
+     +SGN::Role::Site::Exceptions
+     +SGN::Role::Site::Files
+     +SGN::Role::Site::Mason    
 /;
 
 extends 'Catalyst';
@@ -32,35 +38,20 @@ $VERSION = eval $VERSION;
 # with an external configuration file acting as an override for
 # local deployment.
 
-# __PACKAGE__->config(
-#     name => 'solGS',
-#     # Disable deprecated behavior needed by old applications
-#     disable_component_resolution_regex_fallback => 1,
-# );
-
-# # Start the application
-# __PACKAGE__->setup();
-
 __PACKAGE__->config(
+    'Plugin::ConfigLoader' => {
+        substitutions => {
+            UID       => sub { $> },
+            USERNAME  => sub { (getpwuid($>))[0] },
+            GID       => sub { $) },
+            GROUPNAME => sub { (getgrgid($)))[0] },
+           },
+       }
 
-    name => 'solGS',
-    root => 'static',
-
-    disable_component_resolution_regex_fallback => 1,
-
-    #default_view => 'Mason',
-
-    # Static::Simple configuration
-    static => {
-        dirs => [qw[ static img  ]],
-    }
 );
 
 
-
-
 __PACKAGE__->setup;
-
 
 
 =head1 NAME
