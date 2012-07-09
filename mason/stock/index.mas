@@ -158,6 +158,10 @@ my $ontology_subtitle = $curator || $submitter || $sequencer  ?
   qq|<a href="javascript:Tools.toggleContent('associate_cvterm_form', 'stock_ontology')">[Add ontology annotations]</a> | :
   qq |<span class = "ghosted"> [Add ontology annotations]</span> |;
 
+my $add_phenotype = $curator || $submitter || $sequencer  ?
+  qq|<a href="javascript:Tools.toggleContent('add_phenotype_form', 'exp_phenotypes')">[Upload new phenotype]</a> | :
+  qq |<span class = "ghosted"> [Upload new phenotype]</span> |;
+
 
 </%perl>
 <& /util/import_javascript.mas, classes => ["jquery", "thickbox", "CXGN.Phenome.Tools", "CXGN.Page.FormattingHelpers"] &>
@@ -273,15 +277,21 @@ function jqueryStuff() {
   show_form     => $is_owner  &>
 </&>
 
-<&| /page/info_section.mas, title=>"Phenotype data " ,  subtitle=>$p_download_link ,  collapsible => 1, collapsed => 1 &>
+<&| /page/info_section.mas,
+  title=>"Phenotype data " ,
+  subtitle=>$p_download_link ,
+  collapsible => 1,
+  collapsed => 1 &>
 % foreach my $project (keys %$direct_phenotypes) {
 %   my $rs = $direct_phenotypes->{$project} ;
-<&| /page/info_section.mas, 
-    title=>"Experiment: $project", 
-    is_subsection => 1, collapsible => 1 
+<&| /page/info_section.mas,
+  id            => "exp_phenotypes",
+  title         =>"Experiment: $project",
+  subtitle      => $add_phenotype,
+  is_subsection => 1, collapsible => 1
 &>
-    <& /phenotypes/phenotype_data.mas , 
-      phenotypes=> $rs 
+    <& /phenotypes/phenotype_data.mas,
+      phenotypes=> $rs
     &>
   </&>
 % }
