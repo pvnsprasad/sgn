@@ -341,16 +341,25 @@ sub _traverse_descendants {
 sub _view_pedigree {
   my ($self, $pedigree_hashref) = @_;
   my %pedigree = %$pedigree_hashref;
-  #my($graph) = GraphViz2 -> new
-  #  (
-  #   edge       => {color => 'black', constraint => 'true'},
-  #   global => {directed => 0},
-  #   graph      => {rankdir => 'TB', bgcolor => '#FAFAFA', ranksep => ".4", nodesep => 1, size => 6},
-  #   node       => {color => 'black', fontsize => 10, fontname => 'Helvetica', height => 0},
-  #  );
   #graphviz input header
-  my $graphviz_input = 'graph Pedigree'."\n".'{'."\n".'graph [ bgcolor="transparent" nodesep=".4" rankdir="TB" ranksep="1" center="true" pad=".2" viewPort="700,400"]'."\n".'node [ color="black" fontname="Helvetica" fontsize="10" ]'."\n".
-    'edge [ color="black" constraint="true" ]'."\n";
+  my $graphviz_input = 'graph Pedigree'."\n".'{'."\n".'graph [ bgcolor="transparent" nodesep=".4" rankdir="TB" ranksep="1" center="true" pad=".2" viewPort="700,400"]'."\n".'node [ color="black" fontname="Helvetica" fontsize="10" ]'."\n".'edge [ color="black" constraint="true" ]'."\n";
+
+  #Direction and ranksep
+  #my $graphviz_input = 'graph Pedigree'."\n".'{'."\n".'graph [ bgcolor="transparent" nodesep=".4" rankdir="BT" ranksep=".1" center="true" pad=".2" viewPort="700,400"]'."\n".'node [ color="black" fontname="Helvetica" fontsize="10" ]'."\n".'edge [ color="black" constraint="true" ]'."\n";
+
+  #No constraint
+  #my $graphviz_input = 'graph Pedigree'."\n".'{'."\n".'graph [ bgcolor="transparent" nodesep=".4" rankdir="TB" ranksep="1" center="true" pad=".2" viewPort="700,400"]'."\n".'node [ color="black" fontname="Helvetica" fontsize="10" ]'."\n".'edge [ color="black" constraint="false" ]'."\n";
+
+  #headport
+  #my $graphviz_input = 'graph Pedigree'."\n".'{'."\n".'graph [ bgcolor="transparent" nodesep=".4" rankdir="TB" ranksep="1" center="true" pad=".2" viewPort="700,400"]'."\n".'node [ color="black" fontname="Helvetica" fontsize="10" ]'."\n".'edge [ color="black" constraint="true" headport="ne"]'."\n";
+
+  #tailport
+  #my $graphviz_input = 'graph Pedigree'."\n".'{'."\n".'graph [ bgcolor="transparent" nodesep=".4" rankdir="TB" ranksep="1" center="true" pad=".2" viewPort="700,400"]'."\n".'node [ color="black" fontname="Helvetica" fontsize="10" ]'."\n".'edge [ color="black" constraint="true" tailport="ne"]'."\n";
+
+  #arrowheads
+  #my $graphviz_input = 'graph Pedigree'."\n".'{'."\n".'graph [ bgcolor="transparent" nodesep=".4" rankdir="TB" ranksep="1" center="true" pad=".2" viewPort="700,400"]'."\n".'node [ color="black" fontname="Helvetica" fontsize="10" ]'."\n".'edge [ color="black" constraint="true" dir="forward" arrowhead="normal"]'."\n";
+
+
   my %nodes;
   my %node_shape;
   my %node_links;
@@ -425,13 +434,10 @@ sub _view_pedigree {
 	next;
       }
       if ($node_shape{$node_key} eq 'female') {
-	#$graph -> add_node(name => $nodes{$node_key},  href => $stock_link, shape=>'oval', target=>"_top");
 	$graphviz_input_female_nodes .= "\"".$nodes{$node_key}.'" [ color="black" shape="oval" href="'.$stock_link.'" target="_top" ] '."\n";
       } elsif ($node_shape{$node_key} eq 'male') {
-	#$graph -> add_node(name => $nodes{$node_key},  href => $stock_link, shape=>'box', target=>"_top");
-	$graphviz_input_male_nodes .= "\"".$nodes{$node_key}.'" [ color="black" shape="box" href="'.$stock_link.'" target="_top" ] '."\n";
+	$graphviz_input_male_nodes .= "\"".$nodes{$node_key}.'" [ color="black" shape="box" href="'.$stock_link.'" target="_top"] '."\n";
       } else {
-	#$graph -> add_node(name => $nodes{$node_key},  href => $stock_link, shape=>'house', color => 'blue', target=>"_top");
 	$graphviz_input .= "\"".$nodes{$node_key}.'" [ color="blue" shape="house" target="_top" ] '."\n";
       }
     }
@@ -467,6 +473,7 @@ sub _view_pedigree {
   if ($pedigree{'male_parent'} || $pedigree{'male_parent'}) {
     my @command = qw(dot -Tsvg);
     my $graphviz_out = '';
+    print STDERR "$graphviz_input";
     run3 \@command, \$graphviz_input, \$graphviz_out;
     return $graphviz_out;
   } else {
@@ -475,8 +482,7 @@ sub _view_pedigree {
 }
 
 sub _view_descendants {
-  my $graphviz_input = 'graph Descendants'."\n".'{'."\n".'graph [ bgcolor="transparent" nodesep=".4" rankdir="BT" ranksep="1" center="true" pad=".2" viewPort="700,400"]'."\n".'node [ color="black" fontname="Helvetica" fontsize="10" ]'."\n".
-    'edge [ color="black" constraint="true" ]'."\n";
+  my $graphviz_input = 'graph Descendants'."\n".'{'."\n".'graph [ bgcolor="transparent" nodesep=".4" rankdir="BT" ranksep="1" center="true" pad=".2" viewPort="700,400"]'."\n".'node [ color="black" fontname="Helvetica" fontsize="10" ]'."\n".'edge [ color="black" constraint="true" ]'."\n";
   my ($self, $descendants_hashref) = @_;
   my %descendants = %$descendants_hashref;
   my %nodes;
@@ -542,11 +548,11 @@ sub _view_descendants {
     $graphviz_input .= "\"".$nodes{$join_key}."\" -- \"".$nodes{$joins{$join_key}}."\"\n";
   }
   $graphviz_input .= "}\n";
-  #$graph -> run(driver => 'dot',format => 'svg');
   if ((scalar keys %progeny) >= 1) {
     #return $graph->dot_output();
     my @command = qw(dot -Tsvg);
     my $graphviz_out = '';
+    #print STDERR "$graphviz_input";
     run3 \@command, \$graphviz_input, \$graphviz_out;
     return $graphviz_out;
   } else {
