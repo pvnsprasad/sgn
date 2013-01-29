@@ -741,6 +741,8 @@ sub add_stock_parent_GET :Args(0) {
 
     $c->stash->{rest} = { error => '', };
 									
+}
+
 
 }
 
