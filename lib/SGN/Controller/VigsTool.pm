@@ -128,15 +128,39 @@ sub calculate :Path('/tools/vigs/result') :Args(0) {
     print STDERR "DATABASE SELECTED: $params->{database}\n";
     my $bdb = CXGN::BlastDB->from_id($params->{database});
     
-    my $basename = $bdb->full_file_basename;
+    #my $basename = $bdb->full_file_basename;
+    my $basename = $c->config->{blast_db_path};
+    my $database = $bdb->file_base;
+    my $database_fullpath = File::Spec->catfile($basename, $database);
+    print STDERR "BASENAME: $basename\n";
     my $database_title = $bdb->title;
 
     # THIS IS A TMP VARIABLE FOR DEVELOPING
-    $basename = "/home/noe/cxgn/blast_dbs/niben_bt2_index";
+#    $basename = "/home/noe/cxgn/blast_dbs/niben_bt2_index";
     
     #----------------------------------------------------------------------------- run bowtie2
     print STDERR "\n\nSYSTEM CALL: /data/shared/bin/bt2_wrapper.sh $basename $seq_filename.fragments $seq_filename.bt2.out\n\n";
-    system('/home/noe/cxgn/blast_dbs/bt2_wrapper.sh', $basename, $seq_filename.".fragments", $seq_filename.".bt2.out");
+
+    my $bowtie2_path = $c->config->{bowtie2_path};
+    
+    my @command = (File::Spec->catfile($bowtie2_path, "bowtie2"), 
+	   " --threads 1", 
+	   " --very-fast", 
+	   " --no-head", 
+	   " --end-to-end", 
+	   " -a", 
+	   " --no-unal", 
+	   " -x ". $database_fullpath,
+	   " -f",
+	   " -U ". $query_file.".fragments",
+	   " -S ". $query_file.".bt2.out",
+	);
+
+    print STDERR "COMMAND: ".(join ", ",@command)."\n";
+    
+    my $err = system(@command);
+
+    if ($err) { die "bowtie2 run failed."; }
 
     $id = $urlencode{basename($seq_filename)};
     $c->res->redirect("/tools/vigs/view/?id=$id&fragment_size=$fragment_size&database=$database_title&targets=0");
