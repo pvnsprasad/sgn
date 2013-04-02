@@ -24,13 +24,18 @@ my %paths = (
         /search/phenotype_qtl_trait            /search/phenotypes/stock
 
         /search/unigene                        /search/transcripts/unigene
+        /search/unigenes                       /search/transcripts/unigene
         /search/platform                       /search/expression/platform
         /search/template_experiment_platform   /search/expression/template
         /search/experiment                     /search/expression/experiment
         /search/est                            /search/transcripts/est
+        /search/ests                           /search/transcripts/est
+        /search/EST                            /search/transcripts/est
+        /search/ESTs                           /search/transcripts/est
         /search/est_library                    /search/transcripts/est_library
         /search/library                        /search/transcripts/est_library
         /search/bacs                           /search/genomic/clones
+        /search/BACs                           /search/genomic/clones
         /search/marker                         /search/markers
       ),
 

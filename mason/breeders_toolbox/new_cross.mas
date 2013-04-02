@@ -1,0 +1,266 @@
+
+<%args>
+@projects => ()
+@locations => ()
+@roles => ()
+</%args>
+
+<& /util/import_javascript.mas, classes => [ 'jquery', 'jqueryui' ] &>
+
+
+<div id="upload_crosses_dialog"  class="ui-widget" >
+<b>
+Upload a list of crosses:<br>
+</b>
+<br>
+<form action="/cross/upload_cross"  method="post"  enctype="multipart/form-data" id="upload_form" >
+<table>
+<tr><td><input type="file" name="upload_file" value="Choose file" id="upload_file"/><br /></td></tr>
+<tr><td>
+<input type="radio" name="format_type" value="barcode" /> Barcode format<br />
+<input type="radio" name="format_type" value="spreadsheet" checked="checked"/> Spreadsheet<br />
+</td></tr>
+<tr><td>
+<div style="display: none">
+Data access restrictions
+<select disabled id="visible_to_role" name="visible_to_role">
+<option value = "" >none</option>
+<%perl>
+foreach my $role (@roles) {
+	print "<option value=".$role.">".$role."</option>";
+}
+</%perl>
+</select>
+</div>
+</td></tr>
+</table>
+</form>
+</div>
+
+
+<div id="create_cross" title="Add cross" >
+<table cellspacing="0" cellpadding="1" >
+
+<tr><td>Cross name</td><td><input type="text" id="cross_name" name="cross_name" size="40"/></td></tr>
+<tr><td>Cross type</td><td>
+<select id="cross_type">
+<option value = "biparental">biparental</option>
+<option value = "self">self</option>
+<option value = "open">open pollinated</option>
+<option value = "bulk">bulk</option>
+<option value = "bulk_self">bulk selfed</option>
+<option value = "bulk_open">bulk and open pollinated</option>
+<option value = "doubled_haploid">doubled haplotype</option>
+</select>
+</td>
+</tr>
+<tr id="get_maternal_parent" ><td>Maternal parent</td><td><input id="maternal_parent" type="text" name="maternal" size="40"/></td></tr>
+<tr id="get_paternal_parent" ><td>Paternal parent</td><td><input id="paternal_parent" type="text" name="paternal" size="40"/></td></tr>
+<tr id="get_selfed_parent" style = "display: none"><td>Selfed parent</td><td><input id="selfed_parent" type="text" name="selfed_parent" size="40"/></td></tr>
+<tr id="get_bulked_selfed_population" style = "display: none"><td>Bulked selfed <em>population</em></td><td><input id="bulked_selfed_population" type="text" name="bulked_selfed_population" size="40"/></td></tr>
+<tr id="get_doubled_haploid_parent" style = "display: none"><td>Doubled haploid parent</td><td><input id="doubled_haploid_parent" type="text" name="doubled_haploid_parent" size="40"/></td></tr>
+<tr id="get_bulk_maternal_population" style = "display: none"><td>Bulked maternal <em>population</em></td><td><input id="bulked_maternal_population" type="text" name="bulked_maternal_population" size="40"/></td></tr>
+<tr id="get_bulk_paternal_parent" style = "display: none"><td>Bulked paternal parent</td><td><input id="bulked_paternal_parent" type="text" name="bulked_paternal_parent" size="40"/></td></tr>
+<tr id="get_bulk_open_maternal_population" style = "display: none"><td>Bulked paternal <em>population</em></td><td><input id="bulked_open_maternal_population" type="text" name="bulked_open_maternal_population" size="40"/></td></tr>
+
+<tr id="select_bulk_open_paternal_population" style = "display: none">
+  <td>Specify paternal population<input id="specify_bulk_open_paternal_population_checkbox" type="checkbox"/></td>
+  <td id="get_bulk_open_paternal_population" style = "display: none">
+      <input id="bulk_paternal_population" type="text" name="bulk_paternal_population" size="40"/>
+  </td>
+</tr>
+
+
+<tr id="get_open_pollinated_maternal_parent" style = "display: none"><td>Open pollinated maternal parent</td><td><input id="open_pollinated_maternal_parent" type="text" name="open_pollinated_maternal_parent" size="40"/></td></tr>
+
+<tr id="get_open_pollinated_population" style = "display: none">
+  <td>Specify paternal population<input id="specify_paternal_population_checkbox" type="checkbox"/></td>
+  <td id="get_paternal_population" style = "display: none">
+    <input id="paternal_population" type="text" name="paternal_parent_population" size="40"/>
+  </td>
+</tr>
+
+
+<tr><td>Trial</td><td><select id="trial" name="trial">
+<%perl>
+foreach my $project (@projects) {
+	print "<option value=".@$project[0].">".@$project[1]."</option>";
+}
+</%perl>
+</select></td></tr>
+
+<tr><td>Location</td><td>
+<select id="location" name="location">
+<%perl>
+foreach my $location (@locations) {
+	print "<option value=".@$location[0].">".@$location[1]."</option>";
+}
+</%perl>
+</select></td></tr>
+
+<tr><td><br></td></tr>
+
+<tr>
+<td>Specify number of flowers<input id= "flower_number_checkbox" type="checkbox" /></td>
+<td id="get_flower_number" style="display: none">How many flowers?<input type="text" id="flower_number" size="4" /></td>
+</tr>
+
+<tr>
+<td>Specify number of seeds<input id= "seed_number_checkbox" type="checkbox" /></td>
+<td id="get_seed_number" style="display: none">How many seeds?<input type="text" id="seed_number" size="4" /></td>
+</tr>
+
+<tr>
+<td>Create accessions for progeny<input id="create_progeny_checkbox" type="checkbox"/></td>
+<td id="create_progeny_number" style = "display: none"> How many progeny?<input type="text" id="progeny_number" size="4" /></td>
+</tr>
+<tr id="use_prefix_suffix" style = "display: none">
+<td>Use prefix and/or suffix<input id="use_prefix_suffix_checkbox" type="checkbox" /></td>
+<td id="get_prefix_suffix" style = "display: none">Prefix <input id="prefix" name="prefix" size="5" /> Suffix <input id="suffix" name="suffix" size="5" /></td>
+</tr>
+
+<tr><td>Data access restrictions<input id="data_access_checkbox" type="checkbox"/></td>
+<td id="show_visible_to_role_selection" style="display: none">
+<select id="visible_to_role">
+<option value = "" >none</option>
+<%perl>
+foreach my $role (@roles) {
+	print "<option value=".$role.">".$role."</option>";
+}
+</%perl>
+</select>
+</td>
+</tr>
+
+</table>
+</div>
+
+
+
+<script defer="defer" >
+  jQuery("#maternal_parent").autocomplete( { 
+    source: '/ajax/stock/stock_autocomplete'
+});
+
+  jQuery("#paternal_parent").autocomplete( { 
+    source: '/ajax/stock/stock_autocomplete'
+});
+
+  jQuery("#paternal_parent_populaton").autocomplete( { 
+    source: '/ajax/stock/stock_autocomplete'
+});
+
+   jQuery("#create_cross").dialog( {
+      autoOpen: false,
+      buttons: { "Cancel" :  function() { jQuery("#create_cross").dialog("close"); }, "Submit": function() { add_cross() }  },
+      modal: true,
+      width: 500,
+      height: 380
+    });
+
+   jQuery("#cross_type").change(function(){
+      jQuery("#get_maternal_parent").toggle(jQuery("#cross_type").val()=="biparental");  // show if biparental is cross type selected
+      jQuery("#get_paternal_parent").toggle(jQuery("#cross_type").val()=="biparental");  // show if biparental is cross type selected
+      jQuery("#get_selfed_parent").toggle(jQuery("#cross_type").val()=="self");  // show if self is cross type selected
+      jQuery("#get_bulked_selfed_population").toggle(jQuery("#cross_type").val()=="bulk_self");  // show if self is cross type selected
+      jQuery("#get_open_pollinated_maternal_parent").toggle(jQuery("#cross_type").val()=="open");  // show if open is cross type selected
+      jQuery("#get_open_pollinated_population").toggle(jQuery("#cross_type").val()=="open");  // show if open is cross type selected
+      jQuery("#get_bulk_maternal_population").toggle(jQuery("#cross_type").val()=="bulk");  // show if biparental is cross type selected
+      jQuery("#get_bulk_paternal_parent").toggle(jQuery("#cross_type").val()=="bulk");  // show if biparental is cross type selected
+      jQuery("#get_bulk_open_maternal_population").toggle(jQuery("#cross_type").val()=="bulk_open");
+      jQuery("#select_bulk_open_paternal_population").toggle(jQuery("#cross_type").val()=="bulk_open");
+      jQuery("#get_doubled_haploid_parent").toggle(jQuery("#cross_type").val()=="doubled_haploid");  // show if doubled haploid is cross type selected
+
+   });
+
+   jQuery("#specify_paternal_population_checkbox").change(function(){
+      jQuery("#get_paternal_population").toggle(this.checked);  // show if it is checked, otherwise hide
+   });
+
+   jQuery("#specify_bulk_open_paternal_population_checkbox").change(function(){
+      jQuery("#get_bulk_open_paternal_population").toggle(this.checked);  // show if it is checked, otherwise hide
+   });
+
+   jQuery("#flower_number_checkbox").change(function(){
+      jQuery("#get_flower_number").toggle(this.checked);  // show if it is checked, otherwise hide
+   });
+
+   jQuery("#seed_number_checkbox").change(function(){
+      jQuery("#get_seed_number").toggle(this.checked);  // show if it is checked, otherwise hide
+   });
+
+   jQuery("#create_progeny_checkbox").change(function(){
+      jQuery("#create_progeny_number").toggle(this.checked);  // show if it is checked, otherwise hide
+      jQuery("#use_prefix_suffix").toggle(this.checked);  // show if it is checked, otherwise hide
+   });
+    
+   jQuery("#use_prefix_suffix_checkbox").change(function(){
+      jQuery("#get_prefix_suffix").toggle(this.checked);  // show if it is checked, otherwise hide
+   });
+
+   jQuery("#data_access_checkbox").change(function(){
+      jQuery("#show_visible_to_role_selection").toggle(this.checked);  // show if it is checked, otherwise hide
+   });
+
+    jQuery("#add_cross_link").click( function () { 
+     jQuery("#create_cross" ).dialog("open");
+    });
+
+    function add_cross() { 
+   
+      var crossName = jQuery("#cross_name").val();
+      var maternalParent = jQuery("#maternal_parent").val();
+      var paternalParent = jQuery("#paternal_parent").val();
+      var progenyNumber = jQuery("#progeny_number").val();
+      var flowerNumber = jQuery("#flower_number").val();
+      var prefix = jQuery("#prefix").val();
+      var suffix = jQuery("#suffix").val();
+      var visibleToRole = jQuery("#visible_to_role").val();
+      var location = jQuery("#location").val();
+      var trial = jQuery("#trial").val();
+      if (!crossName) { alert("We need a cross name here, sorry!"); return; }
+       alert("Sending AJAX request.. /ajax/cross/add_cross");
+      jQuery.ajax({
+        url: '/ajax/cross/add_cross',
+        dataType: "json",
+        type: 'GET',
+        data: 'cross_name='+crossName+'&maternal_parent='+maternalParent+'&paternal_parent='+paternalParent+'&progeny_number='+progenyNumber+'&flower_number='+flowerNumber+'&prefix='+prefix+'&suffix='+suffix+'&visible_to_role'+visibleToRole+'&trial_id='+trial+'&location_id='+location,
+        error: function(response) { alert("An error occurred. Please try again later!"+response); },
+        parseerror: function(response) { alert("A parse error occurred. Please try again."+response); },
+        success: function(response) { 
+          if (response.error) { alert(response.error); }
+          else {
+            jQuery("#create_cross").dialog("close");
+            alert("The cross has been added. ["+response.error+"]");
+          }
+        }, 
+        //complete: function(response) { 
+        //     alert(response.error);
+        //}
+      });
+  alert("DONE with processing"); 
+   }
+
+
+   jQuery("#upload_crosses_dialog").dialog( {
+      autoOpen: false,
+      buttons: { "Cancel" :  function() { jQuery("#upload_crosses_dialog").dialog("close"); }, "Submit": function() { read_cross_upload() }  },
+      modal: true,
+      width: 600,
+      height: 250
+    });
+    
+    jQuery("#upload_crosses_link").click( function () { 
+     jQuery("#upload_crosses_dialog" ).dialog("open");
+    });
+   
+    function read_cross_upload() { 
+      var formatType = jQuery('input[name=format_type]:checked').val();
+      var uploadFile = jQuery("#upload_file").val();
+      if (!uploadFile) { alert("Please select a file");return;}
+      else if (!(formatType == "barcode" || formatType == "spreadsheet")) {alert("Please choose a format");return;}
+      else { jQuery("#upload_form").submit();}
+    }
+
+</script>
+

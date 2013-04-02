@@ -92,7 +92,7 @@ plugins             = FastaDumper RestrictionAnnotator SequenceDumper TrackDumpe
 overview grid       = 0
 region grid         = 0
 detail grid         = 1
-image widths        = 450 640 800 1024
+image widths        = 450 640 800 1024 1152 1280 1400 1440 1600 1680 1920
 default width       = 800
 pad_left            = 30
 pad_right           = 30
@@ -254,6 +254,24 @@ description  = Tomato FPC (Sanger 2006)
 organism     = Solanum lycopersicum
 extended_description = Tomato fingerprint contigs, 2006 build (from the Sanger Centre).
 restrict_xrefs = sub { my ($q) = @_; my $r = ref $q; return $r && $r eq 'HASH' || $q =~ /^(SGN-M|LE|SL|C\d\d)/  }
+
+[Vitis vinifera]
+path          = sfs_grape.conf
+description   = Vitis vinifera genome annotations (GSVIV12X)
+organism      = Vitis vinifera
+extended_description = Annotations on grape genome (GSVIV12X).
+
+[Oryza sativa]
+path          = sfs_rice.conf
+description   = Oryza sativa genome annotations (IRGSP Build05r1)
+organism      = Oryza sativa
+extended_description = Annotations on rice genomic sequences by the International Rice Genome Sequencing Project (IRGSP).
+
+[Tomato RNA-seq Data]
+path          = sfs_tomato_rnaseq.conf
+description   = Tomato RNA-seq data
+organism      = S. lycopersicum, S. pimpinellifolium, S. pennellii, S. habrochaites, Introgression Line 4-3.
+extended_description = Analyzed transcriptomic sequence data from various tissues and species, including SNP locations.
 
 # [yeast]
 # description = Test

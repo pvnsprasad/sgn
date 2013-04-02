@@ -34,4 +34,26 @@ sub sgn_events :Path('/sgn-events/') {
     my ($self, $c) = @_;
     $c->stash->{template} = '/homepage/sgn_events.mas';
 }
+
+
+sub phenotype_select : Path('/phenome/select') { 
+    my ($self, $c) = @_;
+    
+    $c->stash->{template} = '/phenome/select.mas';
+
+
+}
+
+sub list_test : Path('/list/test') { 
+    my ($self, $c) = @_;
+    
+    $c->stash->{template}= '/list/index.mas';
+    $c->stash->{user_id} = $c->user();
+}
+
+sub usage_policy : Path('/usage_policy') { 
+    my ($self, $c) = @_;
+    $c->stash->{template} = '/usage_policy.mas';
+}
+
 1;
