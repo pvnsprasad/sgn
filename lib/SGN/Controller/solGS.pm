@@ -392,8 +392,12 @@ sub project_description {
     $self->genotype_file($c);
     my $geno_file  = $c->stash->{genotype_file};
     my @geno_lines = read_file($geno_file);
-    my $stocks_no  = scalar(@geno_lines) - 1;
     my $markers_no = scalar(split ('\t', $geno_lines[0])) - 1;
+
+    $self->trait_phenodata_file($c);
+    my $trait_pheno_file  = $c->stash->{trait_phenodata_file};
+    my @trait_pheno_lines = read_file($trait_pheno_file);
+    my $stocks_no         = scalar(@trait_pheno_lines) - 1;
 
     $self->phenotype_file($c);
     my $pheno_file = $c->stash->{phenotype_file};
