@@ -18,25 +18,37 @@ var rankGenotypes = {
         var params, validate;
         var allValues = [];
         var legend = 'Relative Weights:<br/>';
+        var predPopName;
 
         for (var i = 0; i < all.length; i++) {         
              var nm = all[i].name;
              var val = all[i].value;
-             
-             if (val != 'rank')  {
-                 allValues.push(val);
-                 validate = this.validateValues(nm, val);
-              
-                 if (validate) {
-                     
-                     if (i == 0) { 
-                         params = nm+'='+val; 
-                     } else {
-                         params = params +'&'+ nm + '=' + val;
-                     }                     
-                   
-                     legend += '<b> ' + nm + '</b>' + ': '+ val;
+          
+             if (nm == 'prediction_pop_name') {
+                 predPopName = val;
+                 
+                 if (predPopName) {
+                     legend += '<br/><b>Name</b>: ' + predPopName + '<br/>';
+                 }         
 
+             }
+
+             if (val != 'rank')  {
+                 if (nm != 'prediction_pop_name'){
+                     allValues.push(val);                
+                     validate = this.validateValues(nm, val);
+              
+                     if (validate) {
+                     
+                         if (i == 0) { 
+                             params = nm+'='+val; 
+                         } else {
+                             params = params +'&'+ nm + '=' + val;
+                         }                     
+                   
+                         legend += '<b> ' + nm + '</b>' + ': '+ val;
+
+                     }
                  }
              }            
          } 
@@ -139,7 +151,7 @@ var rankGenotypes = {
                                 table += '</tr>';                          
                             }
                         
-                            table += '</table>';                    
+                            table += '</table>'; 
                             table += '<br>' + download_link;
                             table += '<br>' + legend + '<br/><br/>';
                         }
@@ -153,6 +165,9 @@ var rankGenotypes = {
                 });
         }           
     },
+
+
+
 
 ///////
 }
