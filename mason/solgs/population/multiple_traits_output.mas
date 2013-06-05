@@ -19,7 +19,7 @@ $analyzed_traits
 $pop_id
 $model_data
 $download_prediction
-$prediction_pop_id
+$prediction_pop_id => ''
 $list_of_prediction_pops
 
 </%args>
@@ -32,7 +32,7 @@ $list_of_prediction_pops
 <& /solgs/model/model_summary.mas, 
      model_data => $model_data
 &>
-% if ($download_prediction eq 'N/A')
+% if ($prediction_pop_id eq 'N/A')
 %{
 
 %if(scalar(@$analyzed_traits) > 1)
