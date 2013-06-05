@@ -1093,7 +1093,7 @@ sub top_ranked_genotypes {
     my $genotypes_file = $c->stash->{genotypes_mean_gebv_file};
   
     my $genos_data = $self->convert_to_arrayref($c, $genotypes_file);
-    shift(@$genos_data); #add condition
+   
     my @top_genotypes = @$genos_data[0..9];
     
     $c->stash->{top_ranked_genotypes} = \@top_genotypes;
