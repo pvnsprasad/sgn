@@ -39,7 +39,7 @@ $list_of_prediction_pops
 
 <p>&nbsp</p>
 
-% if ($download_prediction ne 'N/A') 
+% if ($prediction_pop_id ne 'N/A') 
 %{
 
 <& rank_genotypes.mas, 
