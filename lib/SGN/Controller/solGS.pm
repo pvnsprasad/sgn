@@ -917,17 +917,14 @@ sub get_gebv_files_of_traits {
     {
         $self->prediction_pop_analyzed_traits($c, $pop_id, $pred_pop_id);
         $pred_gebv_files = $c->stash->{prediction_pop_analyzed_traits_files};
+       
+        foreach (@$pred_gebv_files)
+        {
+            $gebv_files .= catfile($dir, $_);
+            $gebv_files .= "\t" unless (@$pred_gebv_files[-1] eq $_);
+        }     
     } 
 
-   if (@$pred_gebv_files) 
-   {
-       foreach (@$pred_gebv_files)
-       {
-           $gebv_files .= catfile($dir, $_);
-           $gebv_files .= "\t" unless (@$pred_gebv_files[-1] eq $_);
-       }     
-   }
-   
     unless ($pred_gebv_files->[0])
     {
         foreach my $tr (@$traits) 
