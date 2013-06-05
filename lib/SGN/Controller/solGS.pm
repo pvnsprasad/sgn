@@ -759,10 +759,9 @@ sub download_validation :Path('/solgs/download/validation/pop') Args(3) {
 
  
 sub prediction_population :Path('/solgs/model') Args(3) {
-    my ($self, $c, $model_id, $pop, $prediction_id) = @_;
+    my ($self, $c, $model_id, $pop, $prediction_pop_id) = @_;
  
-    $c->res->redirect("/solgs/analyze/traits/population/$model_id/$prediction_id");
-
+    $c->res->redirect("/solgs/analyze/traits/population/$model_id/$prediction_pop_id");
 }
 
 
@@ -916,7 +915,7 @@ sub get_gebv_files_of_traits {
 
     if ($pred_pop_id) 
     {
-        $self->prediction_pop_analyzed_traits($c);
+        $self->prediction_pop_analyzed_traits($c, $pop_id, $pred_pop_id);
         $pred_gebv_files = $c->stash->{prediction_pop_analyzed_traits_files};
     } 
 
@@ -1145,25 +1144,41 @@ sub trait_phenotype_file {
 sub list_of_prediction_pops {
     my ($self, $c, $training_pop_id, $download_prediction) = @_;
    
-    my $pred_pop_rs = $c->model('solGS')->prediction_pops($c, $training_pop_id);
+    
+    $self->list_of_prediction_pops_file($c, $training_pop_id);
+    my $pred_pops_file = $c->stash->{list_of_prediction_pops_file};
+
+    my @pred_pops_ids = split(/\n/, read_file($pred_pops_file));
+    my $pop_ids;
+    
+    if(!@pred_pops_ids) 
+    {
+        my $pred_pops_ids2 = $c->model('solGS')->prediction_pops($c, $training_pop_id);
+        @pred_pops_ids = @$pred_pops_ids2;
+       
+        foreach (@pred_pops_ids) 
+        {
+            $pop_ids .= $_ ."\n";
+        }
+        write_file($pred_pops_file, $pop_ids);
+    }
     
     my @pred_pops;
-    my @pred_pops_ids;
-     
-    foreach (@$pred_pop_rs) 
+ 
+    foreach my $prediction_pop_id (@pred_pops_ids) 
+        
     {  
-        my $pred_pop_rs = $c->model('solGS')->project_details($c, $_);
-        my $prediction_pop_id = $_;
+        my $pred_pop_rs = $c->model('solGS')->project_details($c, $prediction_pop_id);
         my $pred_pop_link;
-      
-        while (my $row = $pred_pop_rs->next) {
-            
+
+        while (my $row = $pred_pop_rs->next) 
+        {            
             my $name = $row->name;
             my $desc = $row->description;
   
             $pred_pop_link = qq | <a href="/solgs/model/$training_pop_id/prediction/$prediction_pop_id" onclick="solGS.waitPage()">$name</a> |;
     
-            my $pr_yr_rs = $c->model('solGS')->project_year($c, $_);
+            my $pr_yr_rs = $c->model('solGS')->project_year($c, $prediction_pop_id);
             my $project_yr;
 
             while ( my $yr_r = $pr_yr_rs->next ) 
@@ -1176,12 +1191,23 @@ sub list_of_prediction_pops {
             my $download_prediction = $c->stash->{download_prediction};
           
             push @pred_pops,  ['', $pred_pop_link, $desc, 'F1', $project_yr, $download_prediction];
-            push @pred_pops_ids, $prediction_pop_id;
         }
     }
 
     $c->stash->{list_of_prediction_pops} = \@pred_pops;
-    $c->stash->{list_of_prediction_pops_ids} = \@pred_pops_ids;
+
+}
+
+
+sub list_of_prediction_pops_file {
+    my ($self, $c, $training_pop_id)= @_;
+     
+    my $cache_data = {key       => 'list_of_prediction_pops' . $training_pop_id,
+                      file      => 'list_of_prediction_pops_' . $training_pop_id,
+                      stash_key => 'list_of_prediction_pops_file'
+    };
+
+    $self->cache_file($c, $cache_data);
 
 }
 
@@ -1221,6 +1247,7 @@ sub traits_to_analyze :Regex('^solgs/analyze/traits/population/([\d]+)(?:/([\d+]
     my $single_trait_id;
     if (!@selected_traits)
     {
+        $c->stash->{model_id} = $pop_id;
         $self->analyzed_traits($c);
         @selected_traits = @{$c->stash->{analyzed_traits}};
     }
@@ -1299,9 +1326,8 @@ sub traits_to_analyze :Regex('^solgs/analyze/traits/population/([\d]+)(?:/([\d+]
         $c->forward('get_rrblup_output');
   
     }
-
+    
     $c->res->redirect("/solgs/traits/all/population/$pop_id/$prediction_id");
-
 }
 
 
@@ -1326,7 +1352,7 @@ sub all_traits_output :Regex('^solgs/traits/all/population/([\d]+)(?:/([\d+]+))?
          $c->stash->{population_is} = 'training population';
      
      }
-
+     $c->stash->{model_id} = $pop_id;
      $self->analyzed_traits($c);
      my @analyzed_traits = @{$c->stash->{analyzed_traits}};
  
@@ -1370,9 +1396,8 @@ sub all_traits_output :Regex('^solgs/traits/all/population/([\d]+)(?:/([\d+]+))?
          my @accuracy_value = grep {/Average/} read_file(catfile($dir, $validation_file[0]));
          @accuracy_value    = split(/\t/,  $accuracy_value[0]);
 
-         push @trait_pages,  [ qq | <a href="/solgs/trait/$trait_id/population/$pop_id" onclick="solGS.waitPage()">$trait_name</a>|, $accuracy_value[1] ];
+         push @trait_pages,  [ qq | <a href="/solgs/trait/$trait_id/population/$pop_id" onclick="solGS.waitPage()">$trait_abbr</a>|, $accuracy_value[1] ];
      }
-
 
      $self->project_description($c, $pop_id);
      my $project_name = $c->stash->{project_name};
@@ -1395,7 +1420,7 @@ sub all_traits_output :Regex('^solgs/traits/all/population/([\d]+)(?:/([\d+]+))?
      {
          push @values, $c->req->param($_);
      }
-      
+ 
      if (@values) 
      {
          $self->get_gebv_files_of_traits($c, \@traits, $pred_pop_id);
@@ -1696,7 +1721,7 @@ sub traits_acronym_file {
 
 sub analyzed_traits {
     my ($self, $c) = @_;
-    my $pop_id = $c->stash->{pop_id};
+    my $model_id = $c->stash->{model_id};
 
     my $dir = $c->stash->{solgs_cache_dir};
     opendir my $dh, $dir or die "can't open $dir: $!\n";
@@ -1706,13 +1731,13 @@ sub analyzed_traits {
                   readdir($dh); 
     closedir $dh;
 
-    my @traits_files = grep {/($pop_id)/} @all_files;
+    my @traits_files = grep {/($model_id)/} @all_files;
     
     my @traits;
     foreach  (@traits_files) 
     {                     
         $_ =~ s/gebv_kinship_//;
-        $_ =~ s/$pop_id|_//g;
+        $_ =~ s/$model_id|_//g;
         push @traits, $_;
     }
 
@@ -2063,7 +2088,7 @@ sub get_rrblup_output :Private{
     
     if (scalar(@traits) > 1)    
     {
-       
+        $c->stash->{model_id} = $pop_id;
         $self->analyzed_traits($c);
         $c->stash->{template}    = $self->template('/population/multiple_traits_output.mas'); 
         $c->stash->{trait_pages} = \@trait_pages;
