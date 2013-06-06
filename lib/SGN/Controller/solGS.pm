@@ -1342,6 +1342,13 @@ sub all_traits_output :Regex('^solgs/traits/all/population/([\d]+)(?:/([\d+]+))?
          $c->stash->{prediction_pop_id} = $pred_pop_id;
          $c->stash->{population_is} = 'prediction population';
          $self->prediction_population_file($c, $pred_pop_id);
+         
+         my $pr_rs = $c->model('solGS')->project_details($c, $pred_pop_id);
+        
+         while (my $row = $pr_rs->next)
+         {
+             $c->stash->{prediction_pop_name} = $row->name;
+         }
      }
      else
      {
