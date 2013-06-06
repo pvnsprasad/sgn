@@ -17,6 +17,7 @@ Isaak Y Tecle (iyt2@cornell.edu)
 $pop_id => ''
 $prediction_pop_id => ''
 $analyzed_traits
+$prediction_pop_name => ''
 
 </%args>
 
@@ -45,8 +46,11 @@ ROW
       $cnt++;   
       $cnt = 0 if $cnt == 3; 
       $trait_rows .=  $row;
+     
     }
 }
+
+$trait_rows .= qq | <tr><td> <input type = "hidden" name="prediction_pop_name" value="$prediction_pop_name"></td></tr> |;
 
 </%perl>
 
