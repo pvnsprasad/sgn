@@ -450,14 +450,11 @@ sub download_action : Path('/breeders/download_action') Args(0) {
     my $trial_list_id     = $c->req->param("trial_list_list_select");
     my $trait_list_id     = $c->req->param("trait_list_list_select");
 
-    print STDERR "IDS: $accession_list_id, $trial_list_id, $trait_list_id\n";
-
     my $t = CXGN::List::Transform->new();
 
     my $bs = CXGN::BreederSearch->new( { dbh=>$c->dbc->dbh() });
     
     my $schema = $c->dbic_schema("Bio::Chado::Schema", "sgn_chado");
-
 
     my $accession_sql = "";
     if ($accession_list_id) { 
@@ -490,8 +487,6 @@ sub download_action : Path('/breeders/download_action') Args(0) {
 	$trait_sql = join ",", map { "\'$_\'" } @{$trait_id_data->{transform}};
     }
 
-    print STDERR "SQL-READY: $accession_sql | $trial_sql | $trait_sql \n";
-
     my $data = $bs->get_phenotype_info($accession_sql, $trial_sql, $trait_sql);
 
     my $output = "";
@@ -501,7 +496,7 @@ sub download_action : Path('/breeders/download_action') Args(0) {
     }
     
     $c->res->content_type("text/plain");
-   $c->res->body($output);
+    $c->res->body($output);
 
 }
 
