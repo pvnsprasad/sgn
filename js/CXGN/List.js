@@ -21,9 +21,9 @@ this will generate an html select box of all the lists, and a "paste" button, to
 
 Public List object functions
 
-* listSelect(divName, types)
+* listSelect(divName, types, emptySelection)
 
-will create an html select with id and name 'divName'. Optionally, a list of types can be specified that will limit the menu to the respective types. 
+will create an html select with id and name 'divName'. Optionally, a list of types can be specified that will limit the menu to the respective types. The second option, if set to true, will add an empty selection to the list.
 
 Usage:
 You have to instantiate the list object first:
@@ -433,7 +433,7 @@ CXGN.List.prototype = {
          types: a list of list types that should be listed in the menu
     */
     
-    listSelect: function(div_name, types) { 	
+    listSelect: function(div_name, types, include_empty) { 	
 	var lists = new Array();
 
 	if (types) {
@@ -451,10 +451,13 @@ CXGN.List.prototype = {
 	}
 
 	var html = '<select id="'+div_name+'_list_select" name="'+div_name+'_list_select" >';
-	for (var n=0; n<lists.length; n++) {
-	    html = html + '<option value='+lists[n][0]+'>'+lists[n][1]+'</option>';
+	if (include_empty) { 
+	    html += '<option value=""><font color="grey">select list</font></option>';
 	}
-	html = html + '</select>';
+	for (var n=0; n<lists.length; n++) {
+	    html += '<option value="'+lists[n][0]+'">'+lists[n][1]+'</option>';
+	}
+	html += '</select>';
 	return html;
     },
 
