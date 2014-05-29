@@ -80,6 +80,7 @@ sub design_info_view {
       $design_description = "Augmented Incomplete Block Design";
     }
     if ($design_info{'design_type'} eq "MADII") {
+
       $design_description = "Modified Augmented Design II";
     }
     if ($design_info{'design_type'} eq "MADIII") {

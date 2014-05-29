@@ -88,6 +88,7 @@ $breeding_programs
         <option value=Alpha>Alpha Lattice</option>
         <option value=Augmented>Augmented</option>
 	<option value=MADII>MADII</option>
+
 	<option value=MADIII>MADIII</option>
 	<option value=MADIV>MADIV</option>
 	<option value=MADV>MADV</option>
@@ -100,6 +101,9 @@ $breeding_programs
 
        <%doc>
        </%doc>
+
+      </select>
+      <br><br>
 
       <div id="trial_design_more_info" style="display: none">
 
@@ -148,6 +152,12 @@ $breeding_programs
 	<div id="col_number_section" style="display: none">
 	  <label for="col_number" style="display: inline-block; width: 200px;">Number of field columns:</label>
 	  <input id="col_number" name="col_number" />
+	  <br>
+       	</div>
+
+	<div id="row_number_section" style="display: none">
+	  <label for="row_number" style="display: inline-block; width: 200px;">Number of rows:</label>
+	  <input id="row_number" name="row_number" />
 	  <br>
        	</div>
 
