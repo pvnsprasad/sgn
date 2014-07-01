@@ -20,7 +20,7 @@ All data is openly and freely available on <a href="/">SGN</a>, <a href="http://
 
 <&| /page/info_section.mas, title=>'Download' &>
 
-<a href="ftp://ftp.solgenomics.net/tomato_genome">FTP site</a> | <a href="/gb2/gbrowse/ITAG2.3_genomic/">Genome Browser</a> | <a href="/tools/blast/">BLAST</a>
+<a href="ftp://ftp.solgenomics.net/tomato_genome">FTP site</a> | <a href="/gbrowse/bin/gbrowse/ITAG2.3_genomic/">Genome Browser</a> | <a href="/tools/blast/">BLAST</a>
 </&>
 
 

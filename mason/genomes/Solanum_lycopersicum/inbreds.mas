@@ -26,7 +26,7 @@
                      'Bulk Datasets (via FTP)' =>
                      '<a href="ftp://ftp.solgenomics.net/genomes/Solanum_lycopersicum/inbred_lines/gh13/">Consensus sequence</a>',
                      BLAST => '<a href="/tools/blast/?db_id=214">Genomic sequence</a>',
-                     'Genome browser' => '<a href="/gb2/gbrowse/Tomato_inbreds/">Gbrowse</a>'
+                     'Genome browser' => '<a href="/gbrowse/bin/gbrowse/Tomato_inbreds/">Gbrowse</a>'
                     )
   %>
 </&>

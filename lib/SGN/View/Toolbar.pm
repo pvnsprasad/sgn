@@ -361,8 +361,7 @@ sub default_toolbar_data {
 
                 {
                     name => 'Genome Browser (Gbrowse)',
-                    #link => '/gbrowse/bin/gbrowse/',
-		    link => '/gb2/gbrowse/',
+                    link => '/gbrowse/bin/gbrowse/',
                     desc => 'browse genomic annotations using GBrowse',
                 },
 		{
