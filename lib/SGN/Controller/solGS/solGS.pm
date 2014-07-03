@@ -3383,8 +3383,7 @@ sub genotype_file  {
     
     if ($pred_pop_id) 
     {      
-        $pop_id = $c->stash->{prediction_pop_id};      
-        $geno_file = $c->stash->{user_selection_list_genotype_data_file};     
+        $pop_id = $pred_pop_id;           
     } 
     
     my $file_cache  = Cache::File->new(cache_root => $c->stash->{solgs_cache_dir});
