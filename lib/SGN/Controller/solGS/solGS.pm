@@ -834,15 +834,16 @@ sub output_files {
 
     no warnings 'uninitialized';
    
-    $prediction_id = "uploaded_${prediction_id}" if $c->stash->{uploaded_prediction};
-
-    my $identifier    = $pop_id . '_' . $prediction_id;
-    
+    unless ($prediction_id =~ /uploaded/)
+    {
+        $prediction_id = "uploaded_${prediction_id}" if $c->stash->{uploaded_prediction};
+    }
+   
     my $pred_pop_gebvs_file;
     
     if ($prediction_id) 
     {
-       
+        my $identifier = $pop_id . '_' . $prediction_id;
         $self->prediction_pop_gebvs_file($c, $identifier, $trait_id);
         $pred_pop_gebvs_file = $c->stash->{prediction_pop_gebvs_file};
     }
@@ -992,31 +993,33 @@ sub gebv_kinship_file {
     my $pop_id = $c->stash->{pop_id};
     my $trait  = $c->stash->{trait_abbr};
     my $data_set_type = $c->stash->{data_set_type};
-        
-    my $cache_data;
     
-    no warnings 'uninitialized';
-
-    if ($data_set_type =~ /combined populations/)
-    {
-        my $combo_identifier = $c->stash->{combo_pops_id};
-        $cache_data = {key       => 'gebv_kinship_combined_pops_'.  $combo_identifier . "_" . $trait,
-                       file      => 'gebv_kinship_'. $trait . '_'  . $combo_identifier. '_combined_pops',
-                       stash_key => 'gebv_kinship_file'
-
-        };
-    }
-    else 
-    {
+    if($trait)
+    {    
+        my $cache_data;
     
-        $cache_data = {key       => 'gebv_kinship_' . $pop_id . '_'.  $trait,
-                       file      => 'gebv_kinship_' . $trait . '_' . $pop_id,
-                       stash_key => 'gebv_kinship_file'
-        };
+        no warnings 'uninitialized';
+
+        if ($data_set_type =~ /combined populations/)
+        {
+            my $combo_identifier = $c->stash->{combo_pops_id};
+            $cache_data = {key       => 'gebv_kinship_combined_pops_'.  $combo_identifier . "_" . $trait,
+                           file      => 'gebv_kinship_'. $trait . '_'  . $combo_identifier. '_combined_pops',
+                           stash_key => 'gebv_kinship_file'
+
+            };
+        }
+        else 
+        {
+    
+            $cache_data = {key       => 'gebv_kinship_' . $pop_id . '_'.  $trait,
+                           file      => 'gebv_kinship_' . $trait . '_' . $pop_id,
+                           stash_key => 'gebv_kinship_file'
+            };
+        }
+
+        $self->cache_file($c, $cache_data);
     }
-
-    $self->cache_file($c, $cache_data);
-
 }
 
 
@@ -1437,19 +1440,22 @@ sub selection_index_form :Path('/solgs/selection/index/form') Args(0) {
     
     my $pred_pop_id = $c->req->param('pred_pop_id');
     my $training_pop_id = $c->req->param('training_pop_id');
-   
+    
     $c->stash->{model_id} = $training_pop_id;
     $c->stash->{prediction_pop_id} = $pred_pop_id;
    
     my @traits;
-    if( !$pred_pop_id) {
-      
+    if( !$pred_pop_id) 
+    {    
         $self->analyzed_traits($c);
-        @traits = @{ $c->stash->{analyzed_traits} };
-     
+        @traits = @{ $c->stash->{analyzed_traits} };    
     }
     else  
     {
+        unless ($pred_pop_id =~ /uploaded/)
+        {
+            $pred_pop_id = 'uploaded_' . $pred_pop_id;
+        }
         $self->prediction_pop_analyzed_traits($c, $training_pop_id, $pred_pop_id);
         @traits = @{ $c->stash->{prediction_pop_analyzed_traits} };
     }
@@ -1477,8 +1483,10 @@ sub prediction_pop_analyzed_traits {
   
     my $prediction_is_uploaded = $c->stash->{uploaded_prediction};
   
-    $prediction_pop_id = "uploaded_${prediction_pop_id}" if $prediction_is_uploaded;
- 
+    unless ($prediction_pop_id =~ /uploaded/)
+    {
+        $prediction_pop_id = "uploaded_${prediction_pop_id}" if $prediction_is_uploaded;
+    } 
     my  @files  =  grep { /prediction_pop_gebvs_${training_pop_id}_${prediction_pop_id}/ && -f "$dir/$_" } 
                  readdir($dh); 
    
@@ -1900,6 +1908,7 @@ sub prediction_population_file {
         );
 
     $c->stash->{prediction_pop_id} = $pred_pop_id;
+    
     $self->genotype_file($c, $pred_pop_id);
     my $pred_pop_file = $c->stash->{pred_genotype_file};
 
@@ -3287,38 +3296,33 @@ sub phenotype_file {
     die "Population id must be provided to get the phenotype data set." if !$pop_id;
     $pop_id =~ s/combined_//;
     
-    my $pheno_file;
- 
-    if ($c->stash->{uploaded_reference} || $pop_id =~ /uploaded/) {
-        my $tmp_dir = $c->stash->{solgs_prediction_upload_dir};     
-        my $user_id = $c->user->id;
-
-        $pheno_file = catfile ($tmp_dir, "phenotype_data_${user_id}_${pop_id}");
- 
-    }
-
-    unless (-s $pheno_file) 
-    {
-
-        my $file_cache  = Cache::File->new(cache_root => $c->stash->{solgs_cache_dir});
-        $file_cache->purge();
+    
+    my $file_cache  = Cache::File->new(cache_root => $c->stash->{solgs_cache_dir});
+    $file_cache->purge();
    
-        my $key        = "phenotype_data_" . $pop_id;
-        $pheno_file = $file_cache->get($key);
+    my $key        = "phenotype_data_" . $pop_id;
+    my $pheno_file = $file_cache->get($key);
        
-        unless ($pheno_file)
-        {  
-            $pheno_file = catfile($c->stash->{solgs_cache_dir}, "phenotype_data_" . $pop_id . ".txt");
-            my $data = $c->model('solGS::solGS')->phenotype_data($pop_id);
-           # my $data = $c->stash->{phenotype_data};
-        
-            $data = $self->format_phenotype_dataset($c, $data);
-            write_file($pheno_file, $data);
-
-            $file_cache->set($key, $pheno_file, '30 days');
+    unless (-s $pheno_file)
+    {  
+        $pheno_file = catfile($c->stash->{solgs_cache_dir}, "phenotype_data_" . $pop_id . ".txt");
+            
+        my $data;
+        if( $pop_id =~ /uploaded/ ) 
+        {
+            $data = $c->stash->{user_reference_list_phenotype_data};
         }
+        else 
+        {
+            $data = $c->model('solGS::solGS')->phenotype_data($pop_id);
+        }
+          
+        $data = $self->format_phenotype_dataset($c, $data);
+        write_file($pheno_file, $data);
+
+        $file_cache->set($key, $pheno_file, '30 days');
     }
-   
+ 
     $c->stash->{phenotype_file} = $pheno_file;   
 
 }
@@ -3377,54 +3381,28 @@ sub genotype_file  {
     my ($self, $c, $pred_pop_id) = @_;
     my $pop_id  = $c->stash->{pop_id};
     
-    my $geno_file;
-
     if ($pred_pop_id) 
     {      
         $pop_id = $c->stash->{prediction_pop_id};      
-        $geno_file = $c->stash->{user_selection_list_genotype_data_file};
-      
+        $geno_file = $c->stash->{user_selection_list_genotype_data_file};     
     } 
     
-    die "Population id must be provided to get the genotype data set." if !$pop_id;
+    my $file_cache  = Cache::File->new(cache_root => $c->stash->{solgs_cache_dir});
+    $file_cache->purge();
   
-    if ($c->stash->{uploaded_reference}) {
-        my $tmp_dir = $c->stash->{solgs_prediction_upload_dir};     
-        my $user_id = $c->user->id;
-
-        $geno_file = catfile ($tmp_dir, "genotype_data_${user_id}_${pop_id}");
+    my $key        = "genotype_data_" . $pop_id;
+    my $geno_file  = $file_cache->get($key);
  
+    unless (-s $geno_file)
+    {  
+        $geno_file = catfile($c->stash->{solgs_cache_dir}, "genotype_data_" . $pop_id . ".txt");
+       
+        my  $data = $c->model('solGS::solGS')->genotype_data($pop_id);
+     
+        write_file($geno_file, $data);
+        $file_cache->set($key, $geno_file, '30 days');
     }
-
-    if ($pop_id =~ /uploaded/) 
-    {
-        my $dir = $c->stash->{solgs_prediction_upload_dir};
-        my $user_id = $c->user->id;
-      
-        my $exp = "genotype_data_${user_id}_${pop_id}"; 
-        $geno_file = $self->grep_file($dir, $exp);    
-      
-    }
-
-    unless($geno_file) 
-    {
-        my $file_cache  = Cache::File->new(cache_root => $c->stash->{solgs_cache_dir});
-        $file_cache->purge();
-   
-        my $key        = "genotype_data_" . $pop_id;
-        $geno_file = $file_cache->get($key);
-
-        unless ($geno_file)
-        {  
-            $geno_file = catfile($c->stash->{solgs_cache_dir}, "genotype_data_" . $pop_id . ".txt");
-            my $data = $c->model('solGS::solGS')->genotype_data($pop_id);
-           
-            write_file($geno_file, $data);
-
-            $file_cache->set($key, $geno_file, '30 days');
-        }
-    }
-   
+  
     if ($pred_pop_id) 
     {
         $c->stash->{pred_genotype_file} = $geno_file;
@@ -3600,9 +3578,12 @@ sub run_rrblup_trait {
         
         if ($prediction_id)
         { 
-            $prediction_id = "uploaded_${prediction_id}" if $c->stash->{uploaded_prediction};
+            unless ($prediction_id =~ /uploaded/) 
+            {
+                $prediction_id = "uploaded_${prediction_id}" if $c->stash->{uploaded_prediction};
+            }
+           
             my $identifier =  $pop_id . '_' . $prediction_id;
-
             $self->prediction_pop_gebvs_file($c, $identifier, $trait_id);
             my $pred_pop_gebvs_file = $c->stash->{prediction_pop_gebvs_file};
 
