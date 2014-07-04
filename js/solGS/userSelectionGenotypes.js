@@ -19,25 +19,13 @@ jQuery(document).ready( function() {
     var relevant =[]; 	
         
     if (listMenu.match(/option/) != null) {
-            
-            //filter by marker match
-            // alert(listMenu);
-            // jQuery(listMenu).find("option").each(function () {
-                
-            //      var v = jQuery(this).val();
-            //      alert(v);
-                
-
-            // });
-
-           
-            jQuery("#prediction_genotypes_list").append(listMenu);
+        
+        jQuery("#prediction_genotypes_list").append(listMenu);
 
         } else {
             
             jQuery("#prediction_genotypes_list").append("<select><option>no lists found</option></select>");
-        }
-               
+        }              
     });
 
 
@@ -85,8 +73,8 @@ function loadGenotypesList(listId) {
     var list           = genoList.list;
     var modelId        = getModelId();
     var traitId        = getTraitId();
-    var selectionPopId = listId;
-    
+    var selectionPopId = 'uploaded_'+ listId;
+   
     if ( list.length === 0) {       
         alert('The list is empty. Please select a list with content.' );
     }
@@ -100,7 +88,7 @@ function loadGenotypesList(listId) {
         jQuery.ajax({
                 type: 'POST',
                     dataType: 'json',
-                    data: {id: 'uploaded_' + listId, 'name': listName, 'list': list},
+                    data: {id: selectionPopId, 'name': listName, 'list': list},
                     url: '/solgs/upload/prediction/genotypes/list',
                    
                     success: function(response) {
@@ -121,7 +109,7 @@ function loadGenotypesList(listId) {
                             var listIdArg = '\'' + listId +'\'';
                             var listSource = '\'from_db\'';
                        
-                            var popIdName   = {id : 'uploaded_' + listId, name: listName,};
+                            var popIdName   = {id : listId, name: listName,};
                             popIdName       = JSON.stringify(popIdName);
                             var hiddenInput =  '<input type="hidden" value=\'' + popIdName + '\'/>';
                             
@@ -207,13 +195,12 @@ function getUserUploadedSelPop (listId) {
     var list           = genoList.list;
     var modelId        = getModelId();
     var traitId        = getTraitId();
-    var selectionPopId = listId;
-   
-
+    var selectionPopId = 'uploaded_' + listId;
+  
     var url         =   '\'/solgs/model/'+ modelId + '/uploaded/prediction/'+ selectionPopId + '\'' ;
     var listIdArg   = '\'' + listId +'\'';
     var listSource  = '\'from_db\'';
-    var popIdName   = {id : 'uploaded_' + listId, name: listName,};
+    var popIdName   = {id : listId, name: listName,};
     popIdName       = JSON.stringify(popIdName);
     var hiddenInput =  '<input type="hidden" value=\'' + popIdName + '\'/>';
 
@@ -253,7 +240,7 @@ function loadPredictionOutput (url, listId, listSource) {
                        'uploaded_prediction': 1, 
                        'trait_id': traitId, 
                        'model_id': modelId, 
-                       'prediction_id': listId,
+                       'prediction_id': 'uploaded_' + listId,
                        'list_source': listSource,
                       },
                 
@@ -318,7 +305,6 @@ jQuery(function () {
                 }                                
             });
     });
-
 
 
 function getCheckValue(fileName) {
