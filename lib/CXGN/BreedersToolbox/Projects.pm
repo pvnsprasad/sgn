@@ -12,6 +12,20 @@ has 'schema' => (
 		 is       => 'rw',
 		 isa      => 'DBIx::Class::Schema',
 		);
+
+
+sub trial_exists { 
+    my $self = shift;
+    my $trial_id = shift;
+    
+    my $rs = $self->schema->resultset('Project::Project')->search( { project_id => $trial_id });
+    
+    if ($rs->count() == 0) { 
+	return 0;
+    }
+    return 1;
+}
+
 sub get_breeding_programs {
     my $self = shift;
 
@@ -28,11 +42,31 @@ sub get_breeding_programs {
     return \@projects;
 }
 
+sub get_breeding_programs_by_trial {
+    my $self = shift;
+    my $trial_id = shift;
+
+    my $breeding_program_cvterm_id = $self->get_breeding_program_cvterm_id();
+
+    my $trial_row = $self->schema->resultset('Project::ProjectRelationship')->find( { 'subject_project_id' => $trial_id } );
+    
+    my $rs = $self->schema->resultset('Project::Project')->search( { 'me.project_id' => $trial_row->object_project_id(), 'projectprops.type_id'=>$breeding_program_cvterm_id }, { join => 'projectprops' }  );
+
+    my @projects;
+    while (my $row = $rs->next()) { 
+	push @projects, [ $row->project_id, $row->name, $row->description ];
+    }
+
+    return  \@projects;
+}
+
+
 
 sub get_breeding_program_by_name {
   my $self = shift;
   my $program_name = shift;
   my $breeding_program_cvterm_id = $self->get_breeding_program_cvterm_id();
+
   my $rs = $self->schema->resultset('Project::Project')->find( { 'name'=>$program_name, 'projectprops.type_id'=>$breeding_program_cvterm_id }, { join => 'projectprops' }  );
 
   if (!$rs) {
