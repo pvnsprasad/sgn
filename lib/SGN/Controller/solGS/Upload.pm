@@ -4,7 +4,6 @@ use Moose;
 use namespace::autoclean;
 
 use List::MoreUtils qw /uniq/;
-#use jQuery::File::Upload;
 use JSON;
 use File::Temp qw / tempfile tempdir /;
 use File::Spec::Functions qw / catfile catdir/;
@@ -13,52 +12,6 @@ use String::CRC;
 use POSIX qw(strftime);
 
 BEGIN { extends 'Catalyst::Controller' }
-
-
-# sub upload_prediction_genotypes_file :Path('/solgs/upload/prediction/genotypes/file') Args(0) {
-#     my ($self, $c) = @_;
-
-#     my $file_upload = jQuery::File::Upload->new();
-   
-#     $file_upload->ctx($c);
-#     $file_upload->field_name('files[]');
-    
-#    # $c->controller("solGS::solGS")->get_solgs_dirs($c);
-#     my $solgs_prediction_upload = $c->stash->{solgs_prediction_upload_dir};
-    
-#     $file_upload->upload_dir($solgs_prediction_upload);
-   
-#     $file_upload->relative_url_path('/solgs/upload/prediction/genotypes/files');
-  
-#     $file_upload->tmp_dir($solgs_prediction_upload);
-#     $file_upload->script_url('/solgs/upload/prediction/genotypes');
-#     $file_upload->use_client_filename(1);
-   
-#     $file_upload->handle_request;
-    
-#     my $file_name         = $file_upload->filename;
-#     my $absolute_filename = $file_upload->absolute_filename;
-#     my $client_filename   = $file_upload->client_filename;
-  
-#     my $geno_list = $self->get_selection_genotypes_list_from_file($absolute_filename);
-    
-#     my @genotypes_list = uniq(@$geno_list);
-#     $c->stash->{selection_genotypes_list_stocks_names} = \@genotypes_list;
-    
-#     $c->stash->{list_name} = $file_name;
-#     $c->stash->{list_id}   = crc($file_name);
-
-#     $c->controller("solGS::solGS")->get_solgs_dirs($c);
-#     $c->model('solGS::solGS')->format_user_list_genotype_data($c);
-    
-#     $self->create_user_list_genotype_data_file($c);
-
-#     $file_upload->print_response;
-
-#     print STDERR "\n  file_name: $file_name\t absolute_name: $absolute_filename \t client_filename: $client_filename\n";
-
-
-# }
 
 
 sub generate_check_value :Path('/solgs/generate/checkvalue') Args(0) {
@@ -161,13 +114,12 @@ sub get_selection_genotypes_list_from_file {
 sub create_user_list_genotype_data_file {
     my ($self, $c) = @_;
       
-    my $tmp_dir   = $c->stash->{solgs_cache_dir};
+    my $tmp_dir = $c->stash->{solgs_cache_dir};
     my $list_id =  $c->stash->{list_id};
-    $list_id = $c->stash->{model_id} if !$list_id;
+    $list_id    = $c->stash->{model_id} if !$list_id;
+    
     my $population_type = $c->stash->{population_type};
-    # if ($c->stash->{list_source}  eq 'from_db') { $list_id= $c->stash->{list_id} };
-    # if ($c->stash->{list_source}  eq 'from_file') { $list_id= $c->stash->{list_id} };  
-    # my $user_id   = $c->user->id;
+  
     my $geno_data;
    
     my $file_cache  = Cache::File->new(cache_root => $c->stash->{solgs_cache_dir});
@@ -193,9 +145,7 @@ sub create_user_list_genotype_data_file {
        
             write_file($geno_file, $geno_data);
             $file_cache->set($key, $geno_file, '30 days');
-        }
-   
-       
+        }       
     }
 
     if ($population_type =~ /reference/) 
@@ -224,10 +174,11 @@ sub create_user_reference_list_phenotype_data_file {
 
 sub create_list_population_metadata {
     my ($self, $c) = @_;
+    
     my $metadata = 'key' . "\t" . 'value';
-    $metadata .= "\n" . 'user_id' . "\t" . $c->user->id;
-    $metadata .= "\n" . 'list_name' . "\t" . $c->{stash}->{list_name};
-    $metadata .= "\n" . 'description' . "\t" . 'Uploaded on: ' . strftime "%a %b %e %H:%M %Y", localtime;
+    $metadata   .= "\n" . 'user_id' . "\t" . $c->user->id;
+    $metadata   .= "\n" . 'list_name' . "\t" . $c->{stash}->{list_name};
+    $metadata   .= "\n" . 'description' . "\t" . 'Uploaded on: ' . strftime "%a %b %e %H:%M %Y", localtime;
     
     $c->stash->{user_list_population_metadata} = $metadata;
   
@@ -467,19 +418,12 @@ sub user_prediction_population_file {
     my $upload_dir = $c->stash->{solgs_cache_dir};
    
     my ($fh, $tempfile) = tempfile("prediction_population_${pred_pop_id}-XXXXX", 
-                                   DIR => $upload_dir
-        );
+                                   DIR => $upload_dir);
 
     my $exp = "genotype_data_${pred_pop_id}";
-   # if($c->stash->{'list_source'} eq 'from_db')
-   # {
+   
     my  $pred_pop_file = $c->controller("solGS::solGS")->grep_file($upload_dir, $exp);
-   # } else 
-   # {
-   #    my $solgs_prediction_upload = $c->stash->{solgs_prediction_upload_dir}      
-
-    #}
-    
+   
     $c->stash->{user_selection_list_genotype_data_file} = $pred_pop_file;
    
     $fh->print($pred_pop_file);
