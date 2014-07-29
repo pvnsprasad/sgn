@@ -1,4 +1,4 @@
-package SGN::Controller::solGS::Upload;
+package SGN::Controller::solGS::List;
 
 use Moose;
 use namespace::autoclean;
