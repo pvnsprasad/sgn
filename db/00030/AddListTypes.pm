@@ -59,7 +59,7 @@ sub patch {
 --do your SQL here
 --
 
-ALTER TABLE sgn_people.list ADD COLUMN type_id bigint REFERENCES cvterm;
+-- ALTER TABLE sgn_people.list ADD COLUMN type_id bigint REFERENCES cvterm;
 
 INSERT INTO cv (name, definition) VALUES ('list_types', '');
 
