@@ -400,4 +400,70 @@ sub get_trial_type : Path('/ajax/breeders/trial/type') Args(1) {
     
 }
 
+sub create_trial_group : Path('/ajax/breeders/trialgroup/create') Args(1) { 
+    my $self = shift;
+    my $c = shift;
+    my $name = shift;
+
+    my $type_id = $self->get_trial_group_id($c);
+
+    my $trial_group = $self->schema->resultset("Project::Project")->create( 
+	{ 
+	    name => $name,
+	});
+
+    my $trial_group_prop = $self->schema->resultset("Project::Projectprop")->create( 
+	{ value => 1,
+	  type_id => $type_id,
+	});
+    
+    $trial_group->insert();
+    $trial_group_prop->insert();
+}
+
+sub associate_trial_with_group :Path('/ajax/breeders/trialgroup/associate/') Args(2) { 
+    my $self = shift;
+    my $c = shift;
+    my $trial_group_id = shift;
+    my $trial_id = shift;
+    
+    my $type_id = $self->get_trial_group_id($c);
+    my $group = $self->schema()->resultset("Project::Project")->find( 
+	{ project_id => $trial_group_id }
+	);
+    
+    my $trial = $self->schema()->resultset("Project::Project")->find(
+	{ project_id => $trial_id }
+	);
+    
+    if ($group->type_id) { 
+    }
+	
+	
+    
+
+}
+
+
+sub get_trial_group_id {
+    my $self = shift;
+    my $c = shift;
+    
+     my $cv_id= $self->schema->resultset("Cv::Cv")
+        ->find_or_create({ 'name' => 'project_property'})->cv_id;
+   
+    my $db_id = $self->schema->resultset("General::Db")
+        ->find_or_new({ 'name' => 'null'})->db_id;
+ 
+    my $dbxref_id = $self->schema->resultset("General::Dbxref")
+        ->find_or_create({'accession' => 'trial_group', 'db_id' => $db_id})->dbxref_id;
+ 
+    my $cvterm_id = $self->schema->resultset("Cv::Cvterm")->find_or_create(
+        { name      => 'trial_group',
+          cv_id     => $cv_id,
+          dbxref_id => $dbxref_id,
+        })->cvterm_id;
+    return $cvterm_id;
+}
+
 1;
