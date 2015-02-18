@@ -1,0 +1,76 @@
+
+<center>
+	<& /page/page_title.mas, title=>"Promoter Motif Finder" &>
+</center>
+<&| /page/info_section.mas, title=>"Input Data", collapsible=>1, collapsed =>0 &>
+	<span>paste a list of gene IDs or sequences in FASTA format</span>
+	<textarea name="sequence" id="sequence">
+Solyc01g006170.2.1
+Solyc01g006180.2.1
+Solyc01g006190.2.1
+Solyc01g006200.2.1
+Solyc01g006210.2.1
+	</textarea>
+	<br>
+	<br>
+	Promoter size <input class="blast_search_input_box" value="2000" id="promoter_size" size="6"/>
+	<br>
+	<br>
+	<center>
+		<button class="submit_blast_button" id="submit_motif_button" type="submit" name="search_motif" value="Search">Search</button>
+	</center>
+</&>
+
+<!-- STYLE -->
+<style>
+
+#sequence {
+	background-color:#EEEEFE;
+	border-color:#000;
+	border-width:2px;
+	border-style:solid;
+	border-radius:5px;
+	width: 100%;
+	min-height: 80px;
+	max-height: 300px;
+	min-width: 700px;
+	max-width: 700px;
+}
+
+.submit_blast_button {
+	background-color:#555555;
+	/*background-color:#4387FD;*/
+	border:0px;
+	border-radius:2px;
+	/*color:#fff;*/
+	color:#EEEEEE;
+	box-shadow: 1px 1px 0px 0px #C6C6C6;
+	font-family:Arial;
+	font-size:12px;
+	height:20px;
+	line-height:18px;
+	vertical-align: top;
+}
+.submit_blast_button:hover {
+	background-color:#444444;
+	/*background-color:#5EA1FF;*/
+	/*color:#acf;*/
+	color:#fff;
+}
+.submit_blast_button:active {
+	position:relative;
+	top:1px;
+	left:1px;
+	box-shadow: 0px 0px 0px 0px #fff;
+}
+
+.blast_search_input_box {
+	border-color:#AAA;
+	border-width:1px;
+	border-style:solid;
+	border-radius:5px;
+	height: 20px;
+	padding-left: 5px;
+}
+
+</style>
