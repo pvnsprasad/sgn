@@ -57,6 +57,7 @@ sub _lookup_trial_id {
   my $self = shift;
   $self->_set_project_from_id();
   if (!$self->has_project()) {
+      print STDERR "Trial id not found\n";
     return;
   }
   my $accession_names_ref;
@@ -144,13 +145,14 @@ sub _get_design_from_trial {
   foreach my $plot (@plots) {
     my %design_info;
     my $plot_of_cv = $schema->resultset("Cv::Cvterm")->find({name => 'plot_of'});
+    my $tissue_sample_of_cv = $schema->resultset("Cv::Cvterm")->find({ name=>'tissue_sample_of' });
     my $plot_name = $plot->uniquename;
     my $plot_number_prop = $plot->stockprops->find( { 'type.name' => 'plot number' }, { join => 'type'} );
     my $block_number_prop = $plot->stockprops->find( { 'type.name' => 'block' }, { join => 'type'} );
     my $replicate_number_prop = $plot->stockprops->find( { 'type.name' => 'replicate' }, { join => 'type'} );
     my $range_number_prop = $plot->stockprops->find( { 'type.name' => 'range' }, { join => 'type'} );
     my $is_a_control_prop = $plot->stockprops->find( { 'type.name' => 'is a control' }, { join => 'type'} );
-    my $accession = $plot->search_related('stock_relationship_subjects')->find({ 'type_id' => $plot_of_cv->cvterm_id()})->object;
+    my $accession = $plot->search_related('stock_relationship_subjects')->find({ 'type_id' => {  -in => [ $plot_of_cv->cvterm_id(), $tissue_sample_of_cv->cvterm_id() ] } })->object;
     my $accession_name = $accession->uniquename;
     $design_info{"plot_name"}=$plot->uniquename;
     $design_info{"plot_id"}=$plot->stock_id;
@@ -198,7 +200,7 @@ sub _get_field_layout_experiment_from_project {
   $field_layout_experiment = $project
      ->search_related("nd_experiment_projects")
        ->search_related("nd_experiment")
-   	->find({ 'type.name' => 'field layout'}, {join => 'type' });
+   	->find({ 'type.name' => ['field layout', 'genotyping layout']}, {join => 'type' });
   return $field_layout_experiment;
 }
 
@@ -316,7 +318,7 @@ sub oldget_plot_names {
   @plots = @{$plots_ref};
   foreach $plot (@plots) {
     push(@plot_names,$plot->uniquename);
-    print "plot: ".$plot->uniquename."\n";
+#    print "plot: ".$plot->uniquename."\n";
   }
   if (!scalar(@plot_names) >= 1) {
     return;
@@ -352,6 +354,7 @@ sub _get_trial_accession_names_and_control_names {
   my @plots;
   my $plot;
   my $plot_of_cv;
+  my $sample_of_cv;
   my %unique_accessions;
   my %unique_controls;
   my @accession_names;
@@ -362,9 +365,9 @@ sub _get_trial_accession_names_and_control_names {
   }
   @plots = @{$plots_ref};
   $plot_of_cv = $schema->resultset("Cv::Cvterm")->find({name => 'plot_of'});
+  $sample_of_cv = $schema->resultset("Cv::Cvterm")->find({name => 'tissue_sample_of'});
   foreach $plot (@plots) {
-    my $accession = $plot->search_related('stock_relationship_subjects')->find({ 'type_id' => $plot_of_cv->cvterm_id()})->object;
-
+    my $accession = $plot->search_related('stock_relationship_subjects')->find({ 'type_id' => [$plot_of_cv->cvterm_id(),$sample_of_cv->cvterm_id()]})->object;
     my $is_a_control_prop = $plot->stockprops->find( { 'type.name' => 'is a control' }, { join => 'type'} );
     my $is_a_control;
     if ($is_a_control_prop) {

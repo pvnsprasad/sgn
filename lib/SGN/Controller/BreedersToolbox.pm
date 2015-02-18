@@ -61,9 +61,12 @@ sub manage_trials : Path("/breeders/trials") Args(0) {
     my %trials_by_breeding_project = ();
 
     foreach my $bp (@$breeding_programs) { 
+	print STDERR "RETRIEVING TRIALS FOR $bp->[1]\n";
 	$trials_by_breeding_project{$bp->[1]}= $projects->get_trials_by_breeding_program($bp->[0]);
     }
 
+    print STDERR Dumper(\%trials_by_breeding_project);
+    
     $trials_by_breeding_project{'Other'} = $projects->get_trials_by_breeding_program();
 
     # locations are not needed for this page... (slow!!)
@@ -145,7 +148,7 @@ sub manage_crosses : Path("/breeders/crosses") Args(0) {
 
     $c->stash->{user_id} = $c->user()->get_object()->get_sp_person_id();
     
-    $c->stash->{locations} = $bp->get_locations($c);
+    $c->stash->{locations} = $bp->get_all_locations($c);
 
     #$c->stash->{projects} = $self->get_projects($c);
 

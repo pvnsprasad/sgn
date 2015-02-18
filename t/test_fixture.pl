@@ -20,11 +20,14 @@ use SGN::Devel::MyDevLibs;
 
 my $verbose = 0;
 my $nocleanup;
-
+my $noserver;
+my $noparallel = 0;
 GetOptions(
     "carpalways" => \( my $carpalways = 0 ),
     "verbose" => \$verbose ,
     "nocleanup" => \$nocleanup,
+    "noserver" => \$noserver,
+    "noparallel" => \$noparallel,
     );
 
 require Carp::Always if $carpalways;
@@ -32,7 +35,7 @@ require Carp::Always if $carpalways;
 my @prove_args = @ARGV;
 @prove_args = ( 't' ) unless @prove_args;
 
-my $parallel = (grep /^-j\d*$/, @ARGV) ? 1 : 0;
+#my $parallel = (grep /^-j\d*$/, @ARGV) ? 1 : 0;
 
 $ENV{SGN_CONFIG_LOCAL_SUFFIX} = 'fixture';
 my $conf_file_base = 'sgn_local.conf'; # which conf file the sgn_fixture.conf should be based on
@@ -86,28 +89,36 @@ print STDERR "Done.\n";
 
 # start the test web server
 #
-my $server_pid = fork;
-my $logfile  = "logfile.$$.txt";
-
-unless( $server_pid ) {
-
-    # web server process
-    #
-    $ENV{SGN_TEST_MODE} = 1;
-@ARGV = (
-    -p => $catalyst_server_port,
-    ( $parallel ? ('--fork') : () ),
-    );
-
-if (!$verbose) { 
-    print STDERR "# [Server logfile at $logfile]\n";
-    open (STDERR, ">$logfile") || die "can't open logfile.";
+my $server_pid;
+my $logfile;
+if ($noserver) { 
+    print STDERR "# [ --noserver option: not starting web server]\n";
 }
-Catalyst::ScriptRunner->run('SGN', 'Server');
+else { 
+    $server_pid = fork;
+    $logfile  = "logfile.$$.txt";
 
-exit;
+    unless( $server_pid ) {
+    
+	# web server process
+	#
+	$ENV{SGN_TEST_MODE} = 1;
+	@ARGV = (
+	    -p => $catalyst_server_port,
+	    ( $noparallel ? () : ('--fork') ),
+	    );
+	
+	if (!$verbose) { 
+	    print STDERR "# [Server logfile at $logfile]\n";
+	    open (STDERR, ">$logfile") || die "can't open logfile.";
+	}
+	Catalyst::ScriptRunner->run('SGN', 'Server');
+	
+	exit;
+    }
+    print STDERR  "# Starting web server (PID=$server_pid)... ";
 }
-print STDERR  "# Starting web server (PID=$server_pid)... ";
+
 
 # wait for the test server to start
 #
@@ -118,7 +129,9 @@ print STDERR  "# Starting web server (PID=$server_pid)... ";
     };
     print STDERR "Done.\n";
 
-    sleep 1 until !kill(0, $server_pid) || get "http://localhost:$catalyst_server_port";    
+    if (!$noserver) { 
+	sleep 1 until !kill(0, $server_pid) || get "http://localhost:$catalyst_server_port";    
+    }
 }
 
 my $prove_pid = fork;
@@ -131,7 +144,7 @@ unless( $prove_pid ) {
     # set up env vars for prove and the tests
     #
     $ENV{SGN_TEST_SERVER} = "http://localhost:$catalyst_server_port";
-    if( $parallel ) {
+    if(! $noparallel ) {
         $ENV{SGN_PARALLEL_TESTING} = 1;
         $ENV{SGN_SKIP_LEAK_TEST}   = 1;
     }
@@ -165,24 +178,36 @@ if (!$nocleanup) {
     system("dropdb -h $config->{dbhost} -U postgres --no-password $dbname");
     print STDERR "Done.\n";
 
-    print STDERR "# Delete server logfile... ";
-    unlink $logfile;
-    print STDERR "Done.\n";
-
-    print STDERR "# Delete fixture conf file... ";
-    unlink "sgn_fixture.conf";
-    print STDERR "Done.\n";
+    if ($noserver) { 
+	print STDERR "# [ --noserver option: No logfile to remove]\n";
+    }
+    else { 
+	print STDERR "# Delete server logfile... ";
+	close($logfile);
+	unlink $logfile;
+	print STDERR "Done.\n";
+	
+	print STDERR "# Delete fixture conf file... ";
+	unlink "sgn_fixture.conf";
+	print STDERR "Done.\n";
+    }
 }
 else { 
     print STDERR "# --nocleanup option: not removing db or files.\n";
 }
 print STDERR "# Test run complete.\n\n";
 
+
+
 sub hash2config { 
     my $hash = shift;
 
-    #print STDERR Data::Dumper::Dumper($hash);
-    
+    our %replace = ( 
+	blast_db_path => $hash->{basepath}."t/data/blast" ,
+	cluster_shared_bindir => '/usr/bin',
+	cluster_shared_tempdir => '/tmp',
+	);
+ 
     my $s = "";
     foreach my $k (keys(%$hash)) { 
 	if (ref($hash->{$k}) eq "ARRAY") { 
@@ -204,7 +229,22 @@ sub hash2config {
 	    }
 	}
 	else { 
-	    $s .= "$k $hash->{$k}\n";
+	    if (exists($replace{$k})) { 
+		$s .= "$k $replace{$k}\n";
+		delete $replace{$k};
+	    }
+	    else { 
+		$s .= "$k $hash->{$k}\n";
+	    }
+	}
+    }
+
+    # if nothing matched the replace keys, add them here
+    #
+    foreach my $k (keys %replace) { 
+	# only do this on the top-level (check for key there)
+	if (exists($hash->{dbname})) { 
+	    $s .= "$k $replace{$k}\n";
 	}
     }
     return $s;
@@ -231,6 +271,8 @@ t/test_fixture.pl --carpalways -- -v -j5 t/mytest.t  t/mydiroftests/
                  to force backtraces of all warnings and errors
 
   --nocleanup    Do not clean up database and logfile
+
+  --noserver     Do not start webserver (if running unit_fixture tests only)
 
 =head1 AUTHORS
 

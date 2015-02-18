@@ -74,6 +74,7 @@ sub correlation_genetic_data :Path('/correlation/genetic/data/') Args(0) {
     my $corr_pop_id = $c->req->param('corr_population_id');
     my $pop_type    = $c->req->param('type');
     my $model_id    = $c->req->param('model_id');
+    
     my $index_file  = $c->req->param('index_file');
       
     $c->stash->{model_id} = $model_id;
@@ -82,12 +83,12 @@ sub correlation_genetic_data :Path('/correlation/genetic/data/') Args(0) {
     $c->stash->{prediction_pop_id} = $corr_pop_id if $pop_type =~ /selection/;
  
     $c->stash->{selection_index_file} = $index_file;
-    $self->combine_gebvs_of_traits($c);
+    $self->combine_gebvs_of_traits($c);   
     my $combined_gebvs_file = $c->stash->{combined_gebvs_file};
    
     my $ret->{status} = 'failed';
 
-    if (-e $combined_gebvs_file && -s $combined_gebvs_file )
+    if ( -s $combined_gebvs_file )
     {
         $ret->{status} = 'success'; 
         $ret->{gebvs_file} = $combined_gebvs_file;
@@ -105,6 +106,12 @@ sub combine_gebvs_of_traits {
 
     $c->controller("solGS::solGS")->get_gebv_files_of_traits($c);  
     my $gebvs_files = $c->stash->{gebv_files_of_valid_traits};
+   
+    if (!-s $gebvs_files) 
+    {
+	$gebvs_files = $c->stash->{gebv_files_of_traits};
+    }
+   
     my $index_file  = $c->stash->{selection_index_file};
    
     my @files_no = map { split(/\t/) } read_file($gebvs_files);
@@ -147,7 +154,7 @@ sub create_correlation_phenodata_file {
         my $pop_id = $c->stash->{pop_id};
        
         my $pheno_exp = "phenodata_${pop_id}";
-        my $dir       = catdir($c->config->{r_qtl_temp_path}, 'cache');
+        my $dir       = catdir($c->path_to($c->config->{r_qtl_temp_path}), 'cache');
        
         my $phenotype_file = $c->controller("solGS::solGS")->grep_file($dir, $pheno_exp);
        
@@ -177,10 +184,10 @@ sub create_correlation_phenodata_file {
 sub create_correlation_dir {
     my ($self, $c) = @_;
     
-    my $temp_dir        = $c->config->{cluster_shared_tempdir};
+    my $temp_dir        = $c->config->{cluster_shared_tempdir}; ;
     my $correlation_dir = catdir($temp_dir, 'correlation', 'cache'); 
   
-    mkpath ([$temp_dir, $correlation_dir], 0, 0755);
+    mkpath ($correlation_dir, 0, 0755);
    
     $c->stash->{correlation_dir} = $correlation_dir;
 
@@ -350,6 +357,40 @@ sub run_genetic_correlation_analysis {
     $self->run_correlation_analysis($c);
 
 }
+
+
+sub download_phenotypic_correlation : Path('/download/phenotypic/correlation/population') Args(1) {
+    my ($self, $c, $id) = @_;
+    
+    $self->create_correlation_dir($c);
+    my $corr_dir = $c->stash->{correlation_dir};
+    my $corr_file = catfile($corr_dir,  "corre_coefficients_table_${id}");
+  
+    unless (!-e $corr_file || -s $corr_file <= 1) 
+    {
+	my @corr_data;
+	my $count=1;
+
+	foreach my $row ( read_file($corr_file) )
+	{
+	    if ($count==1) {  $row = 'Traits,' . $row;}             
+	    $row =~ s/NA//g; 
+	    $row = join(",", split(/\s/, $row));
+	    $row .= "\n";
+ 
+	    push @corr_data, [ $row ];
+	    $count++;
+	}
+   
+	$c->res->content_type("text/plain");
+	$c->res->body(join "",  map{ $_->[0] } @corr_data);   
+           
+
+    } 
+ 
+}
+
+
 
 
 sub run_correlation_analysis {

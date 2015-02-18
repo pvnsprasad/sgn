@@ -13,7 +13,6 @@ Lukas Mueller <lam87@cornell.edu>
 
 package CXGN::Trial;
 
-
 use Moose;
 use Try::Tiny;
 
@@ -27,6 +26,22 @@ has 'bcs_schema' => ( isa => "Ref",
 		      is => 'rw',
 		      required => 1,
     );
+
+
+
+sub BUILD { 
+    my $self = shift;
+    
+    my $row = $self->bcs_schema->resultset("Project::Project")->find( { project_id => $self->get_trial_id() });
+    
+    if ($row){ 
+	print STDERR "Found row for ".$self->get_trial_id()." ".$row->name()."\n";
+    }
+
+    if (!$row) { 
+	die "The trial ".$self->get_trial_id()." does not exist";
+    }
+}
 
 
 =head2 trial_id()
@@ -357,6 +372,9 @@ sub set_name {
     }
 }   
 
+# note: you may need to delete the metadata before deleting the phenotype data (see function).
+# this function has a test!
+#
 sub delete_phenotype_data { 
     my $self = shift;
 
@@ -366,9 +384,6 @@ sub delete_phenotype_data {
 	$self->bcs_schema->txn_do( 
 	    sub { 
 		print STDERR "\n\nDELETING PHENOTYPES...\n\n";
-		# first, delete metadata entries
-		#
-		$self->delete_metadata($trial_id);
 		
 		# delete phenotype data associated with trial
 		#
@@ -390,16 +405,19 @@ sub delete_phenotype_data {
 		while (my ($id) = $h->fetchrow_array()) { 
 		    push @nd_experiment_ids, $id;
 		}
-		$self->_delete_phenotype_experiments(@nd_experiment_ids); # cascading deletes should take care of everything (IT DOESNT????)
+		$self->_delete_phenotype_experiments(@nd_experiment_ids);
 	    });
     };
     if ($@) { 
+	print STDERR "ERROR DELETING PHENOTYPE DATA $@\n";
 	return "Error deleting phenotype data for trial $trial_id. $@\n";
     }
     return '';
     
 }
     
+# this function has a test!
+#
 sub delete_field_layout { 
     my $self = shift;
 
@@ -433,22 +451,31 @@ sub delete_field_layout {
 sub delete_metadata { 
     my $self = shift;
     my $metadata_schema = shift;
+    my $phenome_schema = shift;
 
-    if (!$metadata_schema) { die "Need metadata schema parameter\n"; }
+    if (!$metadata_schema || !$phenome_schema) { die "Need metadata schema parameter\n"; }
 
     my $trial_id = $self->get_trial_id();
 
+    print STDERR "Deleting metadata for trial $trial_id...\n";
+
     # first, deal with entries in the md_metadata table, which may reference nd_experiment (through linking table)
+    #
     my $q = "SELECT distinct(metadata_id) FROM nd_experiment_project JOIN phenome.nd_experiment_md_files using(nd_experiment_id) JOIN metadata.md_files using(file_id) JOIN metadata.md_metadata using(metadata_id) WHERE project_id=?";
     my $h = $self->bcs_schema->storage()->dbh()->prepare($q);
     $h->execute($trial_id);
 
     while (my ($md_id) = $h->fetchrow_array()) { 
-	my $mdmd_row = $self->metadata_schema->resultset("MdMetadata")->find( { metadata_id => $md_id } );
+	print STDERR "Associated metadata id: $md_id\n";
+	my $mdmd_row = $metadata_schema->resultset("MdMetadata")->find( { metadata_id => $md_id } );
 	if ($mdmd_row) { 
+	    print STDERR "Obsoleting $md_id...\n";
+
 	    $mdmd_row -> update( { obsolete => 1 });
 	}
     }
+
+    print STDERR "Deleting the entries in the linking table...\n";
 
     # delete the entries from the linking table...
     $q = "SELECT distinct(file_id) FROM nd_experiment_project JOIN phenome.nd_experiment_md_files using(nd_experiment_id) JOIN metadata.md_files using(file_id) JOIN metadata.md_metadata using(metadata_id) WHERE project_id=?";
@@ -456,9 +483,11 @@ sub delete_metadata {
     $h->execute($trial_id);
     
     while (my ($file_id) = $h->fetchrow_array()) { 
-	my $ndemdf_rs = $self->phenome_schema->resultset("NdExperimentMdFiles")->search( { file_id=>$file_id });
-
+	print STDERR "trying to delete association for file with id $file_id...\n";
+	my $ndemdf_rs = $phenome_schema->resultset("NdExperimentMdFiles")->search( { file_id=>$file_id });
+	print STDERR "Deleting md_files linking table entries...\n";
 	foreach my $row ($ndemdf_rs->all()) { 
+	    print STDERR "DELETING !!!!\n";
 	    $row->delete();
 	}
     }
@@ -474,19 +503,25 @@ sub _delete_phenotype_experiments {
     my $phenotypes_deleted = 0;
     my $nd_experiments_deleted = 0;
     
-    my $phenotype_rs = $self->bcs_schema()->resultset("NaturalDiversity::NdExperimentPhenotype")->search( { nd_experiment_id=> { -in => [ @nd_experiment_ids ] }}, { join => 'phenotype' });
-    if ($phenotype_rs->count() > 0) { 
-	while (my $p = $phenotype_rs->next()) { 
-	    $p->delete();
+    my $nd_exp_phenotype_rs = $self->bcs_schema()->resultset("NaturalDiversity::NdExperimentPhenotype")->search( { nd_experiment_id=> { -in => [ @nd_experiment_ids ] }}, { join => 'phenotype' });
+    if ($nd_exp_phenotype_rs->count() > 0) { 
+	print STDERR "Deleting experiments ... \n";
+	while (my $pep = $nd_exp_phenotype_rs->next()) { 
+	    my $phenotype_rs = $self->bcs_schema()->resultset("Phenotype::Phenotype")->search( { phenotype_id => $pep->phenotype_id() } );
+	    print STDERR "DELETING ".$phenotype_rs->count(). " phenotypes\n";
+	    $phenotype_rs->delete_all();
 	    $phenotypes_deleted++;
 	}
+
     }
+    $nd_exp_phenotype_rs->delete_all();
     
     # delete the experiments
     #
     my $delete_rs = $self->bcs_schema()->resultset("NaturalDiversity::NdExperiment")->search({ nd_experiment_id => { -in => [ @nd_experiment_ids] }});
 
     $nd_experiments_deleted = $delete_rs->count();
+    
     $delete_rs->delete_all();
 
     return { phenotypes_deleted => $phenotypes_deleted, 
@@ -554,6 +589,28 @@ sub _delete_field_layout_experiment {
     return { success => 1 };
 }
 
+sub delete_project_entry { 
+    my $self = shift;
+    
+    if ($self->phenotype_count() > 0) {
+	print STDERR "Cannot delete trial with associated phenotypes.\n";
+	return;
+    }
+    if ($self->get_layout()) { 
+	print STDERR "Cannot delete trial with associated layout\n";
+	return;
+    }
+
+    eval { 
+	my $row = $self->bcs_schema->resultset("Project::Project")->find( { project_id=> $self->get_trial_id() });
+	$row->delete();
+    };
+    if ($@) { 
+	print STDERR "An error occurred during deletion: $@\n";
+	return $@;
+    }
+}
+
 sub phenotype_count { 
     my $self = shift;
 
@@ -568,6 +625,13 @@ sub phenotype_count {
     	);
     
      return $phenotype_experiment_rs->count();
+}
+
+sub total_phenotypes { 
+    my $self = shift;
+    
+    my $pt_rs = $self->bcs_schema()->resultset("Phenotype::Phenotype")->search( { });
+    return $pt_rs->count();
 }
 
 sub get_location_type_id { 
