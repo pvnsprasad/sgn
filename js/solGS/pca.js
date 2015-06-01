@@ -43,19 +43,43 @@ jQuery(document).ready( function() {
 });
 
 
+
+jQuery(document).ready( function() { 
+   
+    var url = window.location.pathname;
+
+    if (url.match(/pca\/analysis\/\w+\/\d+/)) {
+       checkPcaResult();  
+    } 
+ 
+});
+
+
 function checkPcaResult () {
     
     var popId = getPopulationId();
- 
+    var type  = jQuery("#type").val();
+    
+    alert('type..' + type);
+
     jQuery.ajax({
         type: 'POST',
         dataType: 'json',
+	data: {type: type},
         url: '/pca/check/result/' + popId,
         success: function(response) {
             if (response.result === 'yes') {
+		alert('there is result');
 		pcaResult();					
-            } else { 
-		jQuery("#run_pca").show();	
+            } else {
+		 alert('checking  pca referer..');
+		var url = window.location.pathname;
+		if (url.match(/pca\/analysis\/\w+\/\d+/)!= null)	 {
+		    alert('running pca..');
+		    pcaResult();  
+		} else {
+		    jQuery("#run_pca").show();
+		}	
             }
 	}
     });
@@ -144,10 +168,18 @@ function pcaResult () {
     var listName;
     var listType;
     
+    if(jQuery("#id").val()) {
+	listType = jQuery("#type").val();
+	alert('type...' + listType);
+	listId = jQuery("#id").val();
+	alert('id...' + listId);
+    }
+
     if (listId) {
     var genoList = getPcaGenotypesListData(listId);
 	listName = genoList.name;
 	listType = genoList.listType;
+	alert('list Name...' + listName);
     }
     
     if ( popId == null) {
@@ -261,6 +293,10 @@ function getPopulationId () {
 
     if (!populationId) {
         populationId = jQuery("#combo_pops_id").val();
+    }
+
+    if (!populationId) {
+        populationId = jQuery("#id").val();
     }
 
     return populationId;
