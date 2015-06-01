@@ -15,9 +15,12 @@ use CXGN::List;
 BEGIN { extends 'Catalyst::Controller' }
 
 
-sub pca_analysis :Path('/pca/analysis/') Args(0) {
-    my ($self, $c) = @_;
-    
+sub pca_analysis :Path('/pca/analysis/') Args() {
+    my ($self, $c, $type, $id) = @_;
+
+    $c->stash->{type} = $type;
+    $c->stash->{id}   = $id;  
+  
     $c->stash->{template} = '/pca/analysis.mas';
 
 }
