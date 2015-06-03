@@ -67,11 +67,14 @@ $id=>''
 </&>
 
 
-<div id="pca_canvas"></div>
-<div id="pca_plot"></div>
-<div id="pca_message" style="font-weight:bold;text-align:center;color:#A7C942"></div>
-
-<input type="hidden"  id="type" value="<% $type %>" /> 
-<input type="hidden" id="id" value="<% $id %>" /> 
-
-
+<div id="pca_canvas">
+  <div class="pca_plot">
+% if ($type eq 'list')  {
+    <input type="hidden" id="list_id" value="<% $id %>" /> 
+% } else {
+    <input type="hidden" id="population_id" value="<% $id %>" /> 
+% }
+    <input type="hidden"  id="type" value="<% $type %>" /> 
+  </div>
+  <div id="pca_message" style="font-weight:bold;text-align:center;color:#A7C942"></div>
+</div>
