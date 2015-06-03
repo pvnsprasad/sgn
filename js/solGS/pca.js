@@ -14,7 +14,7 @@ jQuery(document).ready( function() {
     
     var url = window.location.pathname;
     
-    if (url.match(/pca\/analysis/) != null) {
+    if (url.match(/pca\/analysis/)) {
     
         var list = new CXGN.List();
         
@@ -43,13 +43,14 @@ jQuery(document).ready( function() {
 });
 
 
-
 jQuery(document).ready( function() { 
    
     var url = window.location.pathname;
 
     if (url.match(/pca\/analysis\/\w+\/\d+/)) {
-       checkPcaResult();  
+	if (!jQuery('.pca_plot').html()) {
+	    checkPcaResult();
+	} 	
     } 
  
 });
@@ -60,7 +61,7 @@ function checkPcaResult () {
     var popId = getPopulationId();
     var type  = jQuery("#type").val();
     
-    alert('type..' + type);
+    if (!popId) { popId = getListId();}
 
     jQuery.ajax({
         type: 'POST',
@@ -69,14 +70,12 @@ function checkPcaResult () {
         url: '/pca/check/result/' + popId,
         success: function(response) {
             if (response.result === 'yes') {
-		alert('there is result');
 		pcaResult();					
             } else {
-		 alert('checking  pca referer..');
 		var url = window.location.pathname;
-		if (url.match(/pca\/analysis\/\w+\/\d+/)!= null)	 {
-		    alert('running pca..');
+		if (url.match(/pca\/analysis\/\w+\/\d+/)) {
 		    pcaResult();  
+		    jQuery('#id').val();
 		} else {
 		    jQuery("#run_pca").show();
 		}	
@@ -168,22 +167,14 @@ function pcaResult () {
     var listName;
     var listType;
     
-    if(jQuery("#id").val()) {
-	listType = jQuery("#type").val();
-	alert('type...' + listType);
-	listId = jQuery("#id").val();
-	alert('id...' + listId);
-    }
-
     if (listId) {
     var genoList = getPcaGenotypesListData(listId);
 	listName = genoList.name;
 	listType = genoList.listType;
-	alert('list Name...' + listName);
     }
     
     if ( popId == null) {
-	popId = listId;
+    	popId = listId;
     }
 
     if (listId || popId) {
@@ -194,26 +185,28 @@ function pcaResult () {
         type: 'POST',
         dataType: 'json',
         data: {'population_id': popId, 
-	       'list_id': listId, 
-	       'list_name': listName, 
-	       'list_type': listType,
+	       'list_id'      : listId, 
+	       'list_name'    : listName, 
+	       'list_type'    : listType,
 	      },
         url: '/pca/result/' + popId,
         success: function(response) {
             if (response.status === 'success') {
 	
-		var scores = response.pca_scores;
+		var scores    = response.pca_scores;
 		var variances = response.pca_variances;
-		
+		var pop_name  = response.pop_name;
+	
 		if (response.pop_id) {
 		    popId = response.pop_id;
 		}
 		
-		var plotData = { 'scores': scores, 
-				 'variances': variances, 
-				 'pop_id': popId, 
-				 'list_id': listId,
-				 'list_name': listName
+		var plotData = { 'scores'    : scores, 
+				 'variances' : variances, 
+				 'pop_id'    : popId, 
+				 'list_id'   : listId,
+				 'list_name' : listName,
+				 'pop_name'  : pop_name,
 			       };
 					
                 plotPca(plotData);
@@ -269,7 +262,7 @@ function getPcaGenotypesListData(listId) {
     
     var list = new CXGN.List();
     
-    if (! listId == "") {
+    if (listId) {
 	var listName = list.listNameById(listId);
         var listType = list.getListType(listId);
 	
@@ -354,7 +347,7 @@ function plotPca(plotData){
         .attr("height", totalH);
 
     var pcaPlot = svg.append("g")
-        .attr("id", "#pca_plot")
+        .attr("class", "#pca_plot")
         .attr("transform", "translate(" + (pad.left) + "," + (pad.top) + ")");
    
     var pc1Min = d3.min(pc1);
@@ -517,10 +510,12 @@ function plotPca(plotData){
     } else {
 	id = plotData.list_id;
     }
-
+   
     var popName = "";
-    if (plotData.list_name) {
-	popName = ' -- ' + plotData.list_name;
+    if (plotData.list_name || plotData.pop_name) {
+	popName =  plotData.list_name 
+	    ? ' -- ' + plotData.list_name 
+	    : ' -- ' + plotData.pop_name;
     }
 
     var pcaDownload;
