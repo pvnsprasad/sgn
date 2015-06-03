@@ -30,6 +30,7 @@ sub check_result :Path('/pca/check/result/') Args(1) {
     my ($self, $c, $pop_id) = @_;
 
     $c->stash->{pop_id} = $pop_id;
+    $c->stash->{type}   = $c->req->param('type');
 
     $self->pca_scores_file($c);
     my $pca_scores_file = $c->stash->{pca_scores_file};
@@ -67,7 +68,16 @@ sub pca_result :Path('/pca/result/') Args(1) {
 	$c->stash->{list_id} = $list_id;
 	$c->stash->{list_type} = $list_type;
     }
-   
+
+    my $pop_name;
+    if (!$list_id) 
+    {
+	$pop_name = $c->model('solGS::solGS')
+	    ->project_details($pop_id)
+	    ->first
+	    ->name;
+    }
+  
     $self->create_pca_genotype_data($c);
     
     my @genotype_files_list;
@@ -97,20 +107,20 @@ sub pca_result :Path('/pca/result/') Args(1) {
 	}
 	else 
 	{
-	    $self->run_pca($c);
-	
+	    $self->run_pca($c);	
 	}
     }
     
     my $pca_scores = $c->controller('solGS::solGS')->convert_to_arrayref_of_arrays($c, $pca_scores_file);
     my $pca_variances = $c->controller('solGS::solGS')->convert_to_arrayref_of_arrays($c, $pca_variance_file);
-   
+ 
     if ($pca_scores)
     {
         $ret->{pca_scores} = $pca_scores;
 	$ret->{pca_variances} = $pca_variances;
         $ret->{status} = 'success';  
 	$ret->{pop_id} = $c->stash->{pop_id} if $list_type eq 'trials';
+	$ret->{pop_name} =  $pop_name;
     }
 
     $ret = to_json($ret);
@@ -166,6 +176,7 @@ sub pca_genotypes_list :Path('/pca/genotypes/list') Args(0) {
      
     my $ret->{status} = 'failed';
     my $geno_file = $c->stash->{genotype_file};
+   
     if (-s $geno_file ) 
     {
         $ret->{status} = 'success';
@@ -268,6 +279,7 @@ sub pca_scores_file {
     my ($self, $c) = @_;
     
     my $pop_id = $c->stash->{pop_id};
+    my $type   = $c->stash->{type};
 
     $self->create_pca_dir($c);
     my $pca_dir = $c->stash->{pca_dir};
@@ -275,7 +287,7 @@ sub pca_scores_file {
     $c->stash->{cache_dir} = $pca_dir;
 
     my $cache_data = {key       => "pca_scores_${pop_id}",
-                      file      => "pca_scores_${pop_id}",,
+                      file      => "pca_scores_${pop_id}",
                       stash_key => 'pca_scores_file'
     };
 
@@ -295,12 +307,12 @@ sub pca_variance_file {
     $c->stash->{cache_dir} = $pca_dir;
 
     my $cache_data = {key       => "pca_variance_${pop_id}",
-                      file      => "pca_variance_${pop_id}",,
+                      file      => "pca_variance_${pop_id}",
                       stash_key => 'pca_variance_file'
     };
 
     $c->controller("solGS::solGS")->cache_file($c, $cache_data);
-
+ 
 }
 
 
@@ -315,7 +327,7 @@ sub pca_loadings_file {
     $c->stash->{cache_dir} = $pca_dir;
 
     my $cache_data = {key       => "pca_loadings_${pop_id}",
-                      file      => "pca_loadings_${pop_id}",,
+                      file      => "pca_loadings_${pop_id}",
                       stash_key => 'pca_loadings_file'
     };
 
